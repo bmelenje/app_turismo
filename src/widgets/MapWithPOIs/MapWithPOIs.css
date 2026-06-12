@@ -1,0 +1,390 @@
+/* src/widgets/MapWithPOIs/MapWithPOIs.css */
+/* Estilos para el mapa interactivo y la ficha deslizable */
+
+.map-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.map-viewport {
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   FICHA POI DESLIZABLE
+   ============================================ */
+
+.poi-sheet {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-primary);
+  border-radius: 24px 24px 0 0;
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.12);
+  max-height: 85vh;
+  overflow-y: auto;
+  z-index: 30;
+  transform: translateY(100%);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.poi-sheet.open {
+  transform: translateY(0);
+}
+
+.poi-sheet.closed {
+  transform: translateY(calc(100% - 90px));
+}
+
+/* Scrollbar personalizada */
+.poi-sheet::-webkit-scrollbar {
+  width: 6px;
+}
+
+.poi-sheet::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.poi-sheet::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* HANDLE (barra para arrastrar) */
+.sheet-handle {
+  width: 48px;
+  height: 5px;
+  background: var(--border);
+  border-radius: 2.5px;
+  margin: 12px auto;
+  cursor: grab;
+  user-select: none;
+  transition: background 0.2s;
+}
+
+.sheet-handle:active {
+  cursor: grabbing;
+  background: var(--text-secondary);
+}
+
+.sheet-content {
+  padding: 8px 16px 32px 16px;
+}
+
+/* ============================================
+   ENCABEZADO DE LA FICHA
+   ============================================ */
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+}
+
+.poi-title {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.poi-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  flex-shrink: 0;
+  color: white;
+  opacity: 0.95;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.poi-title h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+  word-break: break-word;
+}
+
+.poi-category {
+  margin: 6px 0 0 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  text-transform: capitalize;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--bg-secondary);
+  border: none;
+  color: var(--text-secondary);
+  font-size: 20px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.2s;
+}
+
+.close-btn:active {
+  background: var(--border);
+  color: var(--text-primary);
+  transform: scale(0.95);
+}
+
+/* ============================================
+   DISTANCIA
+   ============================================ */
+
+.poi-distance {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--color-info);
+  padding: 10px 14px;
+  background: rgba(23, 105, 201, 0.08);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  width: fit-content;
+  font-weight: 600;
+}
+
+/* ============================================
+   IMAGEN DEL POI
+   ============================================ */
+
+.poi-image {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 14px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* ============================================
+   DESCRIPCIÓN
+   ============================================ */
+
+.poi-description {
+  margin: 0 0 18px 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* ============================================
+   BOTONES DE ACCIÓN
+   ============================================ */
+
+.poi-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.action-btn {
+  padding: 13px 16px;
+  border: none;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  user-select: none;
+}
+
+.action-btn.primary {
+  background: var(--color-info);
+  color: white;
+  box-shadow: 0 2px 8px rgba(23, 105, 201, 0.2);
+}
+
+.action-btn.primary:active {
+  transform: scale(0.97);
+  box-shadow: 0 1px 4px rgba(23, 105, 201, 0.15);
+}
+
+.action-btn.secondary {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.action-btn.secondary:active {
+  background: var(--border);
+  transform: scale(0.97);
+}
+
+/* ============================================
+   METADATA (información adicional)
+   ============================================ */
+
+.poi-metadata {
+  font-size: 12px;
+  color: var(--text-secondary);
+  padding: 14px;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  border-left: 3px solid var(--color-info);
+}
+
+.poi-metadata div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+}
+
+.poi-metadata strong {
+  color: var(--text-primary);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ============================================
+   CONTROLES DEL MAPA (botones flotantes)
+   ============================================ */
+
+.map-controls {
+  position: absolute;
+  right: 14px;
+  top: 110px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 20;
+}
+
+.control-btn {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  font-size: 22px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.12);
+  user-select: none;
+}
+
+.control-btn:active {
+  transform: scale(0.92);
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* ============================================
+   RESPONSIVE (móvil)
+   ============================================ */
+
+@media (max-width: 640px) {
+  .poi-sheet {
+    max-height: 90vh;
+  }
+
+  .sheet-content {
+    padding: 8px 14px 28px 14px;
+  }
+
+  .poi-icon {
+    width: 48px;
+    height: 48px;
+    font-size: 24px;
+  }
+
+  .poi-title h2 {
+    font-size: 18px;
+  }
+
+  .poi-image {
+    height: 200px;
+    margin-bottom: 14px;
+  }
+
+  .poi-actions {
+    gap: 8px;
+  }
+
+  .action-btn {
+    padding: 11px 14px;
+    font-size: 13px;
+  }
+
+  .map-controls {
+    right: 10px;
+    top: 80px;
+    gap: 8px;
+  }
+
+  .control-btn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+  }
+}
+
+/* ============================================
+   DARK MODE (modo oscuro)
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .poi-sheet {
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  }
+
+  .action-btn.primary {
+    background: #2080d4;
+    box-shadow: 0 2px 8px rgba(32, 128, 212, 0.25);
+  }
+
+  .action-btn.primary:active {
+    background: #1a6fb8;
+    box-shadow: 0 1px 4px rgba(32, 128, 212, 0.15);
+  }
+
+  .poi-distance {
+    background: rgba(23, 105, 201, 0.15);
+    color: #85b7eb;
+  }
+
+  .poi-metadata {
+    border-left-color: #2080d4;
+  }
+
+  .control-btn {
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  }
+}

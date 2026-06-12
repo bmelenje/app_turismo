@@ -1,0 +1,34 @@
+# Dependencias
+node_modules/
+
+# Build
+dist/
+build/
+
+# Variables de entorno (NUNCA subir)
+.env
+.env.local
+.env.*.local
+
+# Capacitor (generados automáticamente)
+android/
+ios/
+
+# Editores
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Cache
+.eslintcache
