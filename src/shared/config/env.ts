@@ -6,7 +6,7 @@ export const ENV = {
   CAMERA_IP:      import.meta.env.VITE_CAMERA_IP      as string ?? '',
   CAMERA_USER:    import.meta.env.VITE_CAMERA_USER    as string ?? 'admin',
   CAMERA_PASS:    import.meta.env.VITE_CAMERA_PASS    as string ?? 'admin',
-  MAP_STYLE:      import.meta.env.VITE_MAP_STYLE      as string ?? 'https://demotiles.maplibre.org/style.json',
+  MAP_STYLE:      import.meta.env.VITE_MAP_STYLE      as string ?? 'https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json',
   COUCHDB_URL:    import.meta.env.VITE_COUCHDB_URL    as string ?? '',
   MAP_CENTER_LNG: Number(import.meta.env.VITE_MAP_CENTER_LNG ?? -76.6127),
   MAP_CENTER_LAT: Number(import.meta.env.VITE_MAP_CENTER_LAT ?? 2.4428),
