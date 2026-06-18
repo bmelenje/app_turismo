@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { Geolocation } from '@capacitor/geolocation';
 import { calculateDistance } from '@/shared/lib/distance';
 import { PROXIMITY_RADIUS_M } from '@/shared/config/constants';
+import { requestLocationPermission } from '../lib/requestLocationPermission';
 import type { POI } from '@/entities/poi';
 
 interface GeofencingStore {
@@ -20,6 +21,9 @@ export const useGeofencingStore = create<GeofencingStore>((set, get) => ({
 
   start: async (pois, onProximity) => {
     set({ onProximity, notifiedPOIs: new Set() });
+
+    // Asegura el permiso antes de observar la posición (necesario en nativo).
+    await requestLocationPermission();
 
     const id = await Geolocation.watchPosition(
       { enableHighAccuracy: true },

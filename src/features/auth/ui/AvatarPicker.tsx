@@ -6,12 +6,9 @@ interface Props {
   onComplete: () => void;
 }
 
-const AVATARS: { id: Avatar; name: string; emoji: string; desc: string }[] = [
-  { id: 'sahumadora', name: 'Sahumadora', emoji: '🌿', desc: 'Tradición y aromas' },
-  { id: 'cargero',    name: 'Carguero',   emoji: '✝️', desc: 'Semana Santa' },
-  { id: 'empanada',   name: 'Empanada',   emoji: '🥟', desc: 'Sabor de pipián' },
-  { id: 'carantanta', name: 'Carantanta', emoji: '🌽', desc: 'Crujiente tradición' },
-  { id: 'tamal',      name: 'Tamal',      emoji: '🍃', desc: 'Domingo familiar' },
+const AVATARS: { id: Avatar; name: string; image: string; desc: string }[] = [
+  { id: 'sahumadora', name: 'Sahumadora', image: '/images/AvatarSahumadora.png', desc: 'Tradición y aromas' },
+  { id: 'catedral',   name: 'Catedral',   image: '/images/AvatarCatedral.png',   desc: 'La Ciudad Blanca' },
 ];
 
 export function AvatarPicker({ onComplete }: Props) {
@@ -42,13 +39,17 @@ export function AvatarPicker({ onComplete }: Props) {
             <button
               key={av.id}
               onClick={() => setSelected(av.id)}
-              className={`flex flex-col items-center gap-1 rounded-2xl border-2 p-4 text-center transition-all ${
+              className={`flex flex-col items-center gap-2 rounded-2xl border-2 p-4 text-center transition-all ${
                 isSel
                   ? 'border-primary bg-primary/10 shadow-sm'
                   : 'border-border bg-card hover:border-primary/40'
               }`}
             >
-              <div className="text-3xl">{av.emoji}</div>
+              <img
+                src={av.image}
+                alt={av.name}
+                className="h-20 w-20 rounded-full object-cover shadow-sm"
+              />
               <div className="font-heading text-sm font-semibold text-foreground">{av.name}</div>
               <div className="text-[11px] leading-tight text-muted-foreground">{av.desc}</div>
             </button>

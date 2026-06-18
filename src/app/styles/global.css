@@ -150,34 +150,106 @@
   }
 }
 
-/* Markers de POI estilo "pin" (MapLibre custom HTML marker) */
+/* Markers de POI con foto del lugar (MapLibre custom HTML marker) */
 .popayan-marker {
+  position: relative;
   background: transparent;
   border: none;
   cursor: pointer;
+  width: 52px;
+  height: 64px;
 }
-.marker-pin {
-  width: 30px;
-  height: 30px;
-  border-radius: 50% 50% 50% 0;
-  transform: rotate(-45deg);
+/* Sombra proyectada en el suelo */
+.popayan-marker::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 18px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 50%;
+  transform: translateX(-50%);
+  filter: blur(1.5px);
+  transition: width 0.2s ease, opacity 0.2s ease;
+}
+/* Foto circular con borde rojo */
+.marker-photo {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  transform-origin: bottom center;
+  background-color: #f1eee9;
+  background-size: cover;
+  background-position: center;
+  border: 3px solid #ea4335;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.32);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+/* Punta roja que señala la ubicación exacta */
+.marker-photo::after {
+  content: '';
+  position: absolute;
+  bottom: -9px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 11px solid #ea4335;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
+}
+/* Variante con ícono (restaurantes, hoteles… sin foto) */
+.marker-icon {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  transform: translateX(-50%);
+  transform-origin: bottom center;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
-  border: 2px solid white;
-  transition: transform 0.2s ease;
+  border: 3px solid #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.32);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.marker-dot {
-  width: 9px;
-  height: 9px;
-  background: white;
-  border-radius: 50%;
-  transform: rotate(45deg);
+.marker-icon::after {
+  content: '';
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 10px solid var(--pin, #ea4335);
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.2));
 }
-.marker-pin.marker-active {
-  transform: rotate(-45deg) scale(1.35);
+.marker-icon-emoji {
+  font-size: 18px;
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.3));
+}
+.popayan-marker.marker-active {
   z-index: 1000;
+}
+.popayan-marker.marker-active .marker-photo,
+.popayan-marker.marker-active .marker-icon {
+  transform: translateX(-50%) scale(1.15);
+  box-shadow: 0 7px 16px rgba(0, 0, 0, 0.4);
+}
+.popayan-marker.marker-active::after {
+  width: 22px;
+  opacity: 0.85;
 }
 .maplibregl-map {
   font-family: var(--font-sans), sans-serif;

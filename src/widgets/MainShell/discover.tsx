@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import {
   Menu,
   Search,
@@ -91,8 +90,6 @@ function TourCard({
 }
 
 export default function Discover({ onOpenMenu, onOpenMap, onOpenPlace }: Props) {
-  const [tab, setTab] = useState<'descubrir' | 'intro'>('descubrir');
-
   const autoguiadas = DEMO_POIS.slice(0, 4);
   const aPie = DEMO_POIS.slice(2);
 
@@ -156,64 +153,31 @@ export default function Discover({ onOpenMenu, onOpenMap, onOpenPlace }: Props) 
         </div>
       </header>
 
-      {/* Pestañas */}
-      <div className="sticky top-0 z-10 flex border-b border-border bg-background">
-        {(
-          [
-            { id: 'descubrir', label: 'Ve a descubrir' },
-            { id: 'intro', label: 'Introducción' },
-          ] as const
-        ).map((t) => (
-          <button
-            key={t.id}
-            onClick={() => setTab(t.id)}
-            className={`relative flex-1 py-3.5 text-sm font-semibold transition-colors ${
-              tab === t.id ? 'text-foreground' : 'text-muted-foreground'
-            }`}
-          >
-            {t.label}
-            {tab === t.id && (
-              <span className="absolute inset-x-6 -bottom-px h-0.5 rounded-full bg-primary" />
-            )}
-          </button>
-        ))}
+      <div className="flex flex-col gap-6 pt-6">
+        {/* Visitas autoguiadas */}
+        <section>
+          <h2 className="mb-3 px-5 font-heading text-lg font-bold text-foreground">
+            Visitas autoguiadas
+          </h2>
+          <div className="no-scrollbar flex gap-3 overflow-x-auto px-5">
+            {autoguiadas.map((poi) => (
+              <TourCard key={poi.id} poi={poi} onOpen={onOpenPlace} />
+            ))}
+          </div>
+        </section>
+
+        {/* Centro histórico a pie */}
+        <section>
+          <h2 className="mb-3 px-5 font-heading text-lg font-bold text-foreground">
+            Centro histórico a pie
+          </h2>
+          <div className="no-scrollbar flex gap-3 overflow-x-auto px-5">
+            {aPie.map((poi) => (
+              <TourCard key={poi.id} poi={poi} onOpen={onOpenPlace} />
+            ))}
+          </div>
+        </section>
       </div>
-
-      {tab === 'intro' ? (
-        <div className="px-5 py-6 text-sm leading-relaxed text-muted-foreground">
-          <p>
-            {ENV.APP_CITY}, conocida como la Ciudad Blanca, es uno de los centros históricos
-            coloniales mejor conservados de Colombia. Recorre sus iglesias, plazas y rincones con
-            audioguías, rutas autoguiadas y realidad aumentada.
-          </p>
-        </div>
-      ) : (
-        <div className="flex flex-col gap-6 pt-5">
-          {/* Visitas autoguiadas */}
-          <section>
-            <h2 className="mb-3 px-5 font-heading text-lg font-bold text-foreground">
-              Visitas autoguiadas
-            </h2>
-            <div className="no-scrollbar flex gap-3 overflow-x-auto px-5">
-              {autoguiadas.map((poi) => (
-                <TourCard key={poi.id} poi={poi} onOpen={onOpenPlace} />
-              ))}
-            </div>
-          </section>
-
-          {/* Centro histórico a pie */}
-          <section>
-            <h2 className="mb-3 px-5 font-heading text-lg font-bold text-foreground">
-              Centro histórico a pie
-            </h2>
-            <div className="no-scrollbar flex gap-3 overflow-x-auto px-5">
-              {aPie.map((poi) => (
-                <TourCard key={poi.id} poi={poi} onOpen={onOpenPlace} />
-              ))}
-            </div>
-          </section>
-        </div>
-      )}
     </div>
   );
 }

@@ -18,7 +18,7 @@ import {
   Trophy,
 } from 'lucide-react';
 import { useUserStore } from '@/features/auth';
-import { AVATAR_EMOJI, type Section } from './types';
+import { AVATAR_IMAGE, type Section } from './types';
 
 type NavItem = { id: Section; label: string; icon: typeof Map };
 
@@ -69,7 +69,7 @@ export default function Sidebar({
   const [lang, setLang] = useState<'ES' | 'EN'>('ES');
   const [offline, setOffline] = useState(false);
 
-  const emoji = (avatar && AVATAR_EMOJI[avatar]) || '🧭';
+  const avatarImage = (avatar && AVATAR_IMAGE[avatar]) || null;
 
   return (
     <>
@@ -107,8 +107,12 @@ export default function Sidebar({
             </button>
           </div>
           <div className="relative mt-3 flex flex-col items-center text-center">
-            <div className="flex h-20 w-20 items-center justify-center rounded-full border-[3px] border-card bg-primary text-3xl shadow-lg">
-              {emoji}
+            <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-full border-[3px] border-card bg-primary text-3xl shadow-lg">
+              {avatarImage ? (
+                <img src={avatarImage} alt="" className="h-full w-full object-cover" />
+              ) : (
+                '🧭'
+              )}
             </div>
             <p className="mt-3 font-heading text-lg font-semibold leading-tight">
               {name || 'Viajero'}

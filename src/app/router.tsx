@@ -9,7 +9,9 @@ import { useUserStore }   from '@/features/auth';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const registered = useUserStore((s) => s.registered);
-  return registered ? <>{children}</> : <Navigate to="/" replace />;
+  const guest = useUserStore((s) => s.guest);
+  // Los invitados también acceden (con funcionalidades limitadas a "Descubrir").
+  return registered || guest ? <>{children}</> : <Navigate to="/" replace />;
 }
 
 export const router = createBrowserRouter([
