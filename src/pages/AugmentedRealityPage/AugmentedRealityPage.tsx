@@ -7,7 +7,6 @@ interface ARPageProps {
   onBack: () => void;
 }
 
-// Datos históricos reales del Parque Caldas para el Pitch
 const MOCK_AR_TARGETS = [
   {
     id: 'caldas',
@@ -15,7 +14,7 @@ const MOCK_AR_TARGETS = [
     qrLabel: 'QR_NODO_CENTRAL_01',
     originalText: 'Francisco José de Caldas y Tenorio. Sabio, científico y prócer de la independencia nacido en Popayán. Ejecutado en 1816.',
     translatedText: 'Francisco Jose de Caldas y Tenorio. Scientist, polymath, and hero of New Granada independence born in Popayan. Executed in 1816.',
-    arImage: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=600&auto=format&fit=crop', // Simulación de render de restauración
+    arImage: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=600&auto=format&fit=crop',
     yearOverlay: 'Restauración Digital 3D'
   },
   {
@@ -30,53 +29,58 @@ const MOCK_AR_TARGETS = [
 ];
 
 export function AugmentedRealityPage({ onBack }: ARPageProps) {
-  const [isMobile, setIsMobile] = useState<boolean | null>(null);
+  // Corregido: Inicialización síncrona obligatoria para que el tag <video> exista en el DOM antes de instanciar el stream
+  const [isMobile] = useState<boolean>(() => Capacitor.isNativePlatform());
   const [status, setStatus] = useState<'initializing' | 'scanning' | 'detected'>('initializing');
   const [selectedTarget, setSelectedTarget] = useState(MOCK_AR_TARGETS[0]);
   
-  // Estados de la simulación OCR (Escaneo de texto independiente)
   const [ocrStatus, setOcrStatus] = useState<'searching' | 'parsing' | 'ready'>('searching');
   const [isTranslating, setIsTranslating] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
 
-  // Inicialización de la cámara física (si es celular)
+  // Control del ciclo de hardware de la cámara IP / Local
   useEffect(() => {
-    const native = Capacitor.isNativePlatform();
-    setIsMobile(native);
+    let activeStream: MediaStream | null = null;
 
     const initTimer = setTimeout(() => {
       setStatus('scanning');
     }, 1200);
 
-    if (native) {
+    if (isMobile) {
       navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
-        .then((stream) => { if (videoRef.current) videoRef.current.srcObject = stream; })
-        .catch(() => toast.error('Permiso de cámara denegado para AR'));
+        .then((stream) => {
+          activeStream = stream;
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          } else {
+            stream.getTracks().forEach(track => track.stop());
+          }
+        })
+        .catch((err) => {
+          console.error("Fallo de permisos de cámara en AR:", err);
+          toast.error('Permiso de cámara denegado para AR');
+        });
     }
 
     return () => {
       clearTimeout(initTimer);
-      if (videoRef.current?.srcObject) {
-        const stream = videoRef.current.srcObject as MediaStream;
-        stream.getTracks().forEach(track => track.stop());
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => track.stop());
       }
     };
-  }, []);
+  }, [isMobile]);
 
-  // Control de la línea de tiempo del OCR cada vez que se detecta un monumento
+  // Control del pipeline de simulación OCR
   useEffect(() => {
     if (status === 'detected') {
-      // Reiniciar flujos de traducción
       setOcrStatus('searching');
       setIsTranslating(false);
 
-      // Fase 1: Buscando bloques de texto en la estatua (1.2 segundos)
       const parseTimer = setTimeout(() => {
         setOcrStatus('parsing');
       }, 1200);
 
-      // Fase 2: Texto listo para traducción (2.6 segundos totales)
       const readyTimer = setTimeout(() => {
         setOcrStatus('ready');
         toast('Texto de placa indexado para traducción', { icon: '📝', id: 'ocr-success' });
@@ -89,7 +93,6 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
     }
   }, [status, selectedTarget]);
 
-  // Ejecución manual del simulador (Disparador para el Pitch)
   const triggerScanSuccess = (targetId: string) => {
     const target = MOCK_AR_TARGETS.find(t => t.id === targetId);
     if (target) {
@@ -99,7 +102,6 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
     }
   };
 
-  // UI DE INICIALIZACIÓN
   if (status === 'initializing') {
     return (
       <div className="absolute inset-0 z-[1050] flex flex-col bg-zinc-950 items-center justify-center text-center p-6 text-white font-mono">
@@ -152,9 +154,9 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
         {isMobile ? (
           <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover opacity-75" />
         ) : (
-          <div className="absolute inset-0 bg-zinc-900 flex flex-col items-center justify-center p-4">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black flex flex-col items-center justify-center p-4">
             {status === 'scanning' && (
-              <div className="p-4 text-center max-w-xs border border-zinc-800 rounded-2xl bg-zinc-900/30 backdrop-blur-xs mb-28 animate-pulse flex items-center gap-2">
+              <div className="p-4 text-center max-w-xs border border-zinc-800 rounded-2xl bg-zinc-900/30 backdrop-blur-sm mb-28 animate-pulse flex items-center gap-2">
                 <Info className="h-4 w-4 text-[#534AB7] shrink-0" />
                 <p className="text-[10px] font-mono text-zinc-400 text-left">
                   [Simulador Web] Usa los controles de inyección inferiores para disparar la detección del Pitch.
@@ -172,7 +174,7 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
               <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-cyan-400"></div>
               <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-cyan-400"></div>
               <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-cyan-400"></div>
-              <div className="w-full h-[2px] bg-cyan-400 shadow-md shadow-cyan-400 absolute animate-bounce"></div>
+              <div className="w-full h-[2px] bg-cyan-400 shadow-md shadow-cyan-400 absolute animate-[bounce_2s_infinite]"></div>
               <QrCode className="w-12 h-12 text-zinc-800" />
             </div>
             
@@ -183,10 +185,10 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
             <div className="absolute bottom-24 inset-x-4 flex flex-col gap-1.5 max-w-xs mx-auto z-50">
               <span className="text-[9px] font-mono text-center text-zinc-500 block uppercase tracking-widest">Inyectar QR (Demo Control)</span>
               <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => triggerScanSuccess('caldas')} className="py-2.5 px-3 bg-[#534AB7] hover:bg-[#4339a2] text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-lg">
+                <button onClick={() => triggerScanSuccess('caldas')} className="py-2.5 px-3 bg-[#534AB7] hover:bg-[#4339a2] text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-lg shadow-purple-950/20">
                   Sabio Caldas
                 </button>
-                <button onClick={() => triggerScanSuccess('catedral')} className="py-2.5 px-3 bg-[#534AB7] hover:bg-[#4339a2] text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-lg">
+                <button onClick={() => triggerScanSuccess('catedral')} className="py-2.5 px-3 bg-[#534AB7] hover:bg-[#4339a2] text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-lg shadow-purple-950/20">
                   La Catedral
                 </button>
               </div>
@@ -198,7 +200,7 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
         {status === 'detected' && (
           <div className="absolute inset-0 flex flex-col justify-between p-4">
             <div className="flex-1 flex items-center justify-center mt-16 mb-44 animate-in zoom-in-95 duration-300">
-              <div className="relative rounded-2xl overflow-hidden border border-cyan-500/20 shadow-2xl max-w-xs w-60 aspect-square bg-zinc-900/90 backdrop-blur-xs">
+              <div className="relative rounded-2xl overflow-hidden border border-cyan-500/20 shadow-2xl max-w-xs w-60 aspect-square bg-zinc-900/90 backdrop-blur-sm">
                 <img src={selectedTarget.arImage} alt="AR Render" className="w-full h-full object-cover mix-blend-screen opacity-85" />
                 <div className="absolute bottom-2 right-2 bg-cyan-900/80 backdrop-blur-md text-cyan-300 text-[8px] font-mono px-2 py-0.5 rounded border border-cyan-500/30 uppercase tracking-widest">
                   {selectedTarget.yearOverlay}
@@ -218,7 +220,7 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
                   disabled={ocrStatus !== 'ready'}
                   onClick={() => setIsTranslating(!isTranslating)}
                   className={`flex items-center gap-1 py-1 px-2.5 rounded-lg text-[11px] font-bold border transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none ${
-                    isTranslating ? 'bg-amber-500 text-zinc-950 border-amber-500 font-mono' : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
+                    isTranslating ? 'bg-amber-500 text-zinc-950 border-amber-500 font-mono shadow-md shadow-amber-500/10' : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
                   }`}
                 >
                   <Languages className="h-3 w-3" />
@@ -236,6 +238,7 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
 
                 {ocrStatus === 'parsing' && (
                   <div className="w-full py-1 border border-dashed border-amber-500/40 bg-amber-500/5 rounded relative text-center animate-pulse">
+                    <div className="w-full h-[1px] bg-amber-400/70 absolute top-0 animate-[bounce_1.2s_infinite]" />
                     <span className="text-[8px] font-mono text-amber-400 tracking-widest uppercase">[OCR_MATRIX_LOCKING]</span>
                   </div>
                 )}
@@ -244,11 +247,11 @@ export function AugmentedRealityPage({ onBack }: ARPageProps) {
                   <div className="animate-in fade-in duration-300">
                     {isTranslating ? (
                       <p className="text-xs text-amber-300 font-mono leading-relaxed">
-                        <Sparkles className="h-3 w-3 inline mr-1 text-amber-400 fill-amber-400" />
-                        {selectedTarget.translatedText}
+                        <Sparkles className="h-3 w-3 inline mr-1 text-amber-400 fill-amber-400 animate-pulse" />
+                        "{selectedTarget.translatedText}"
                       </p>
                     ) : (
-                      <p className="text-xs text-zinc-300 leading-relaxed">{selectedTarget.originalText}</p>
+                      <p className="text-xs text-zinc-300 leading-relaxed">"{selectedTarget.originalText}"</p>
                     )}
                   </div>
                 )}

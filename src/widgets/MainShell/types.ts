@@ -12,7 +12,8 @@ export type Section =
   | 'favoritos'
   | 'retos'
   | 'ajustes'
-  | 'perfil';
+  | 'perfil'
+  | 'ar'; // Mantenemos ambos para no romper herencias
 
 export const SECTION_TITLES: Record<Section, string> = {
   descubrir: 'Descubrir',
@@ -20,7 +21,8 @@ export const SECTION_TITLES: Record<Section, string> = {
   lugares: 'Lugares de interés',
   rutas: 'Rutas guiadas',
   galeria: 'Galería de fotos',
-  ra: 'Realidad Aumentada',
+  ra: 'Realidad Aumentada', 
+  ar: 'Realidad Aumentada', // ¡CORREGIDO!: Agregada esta propiedad para satisfacer al Record<Section, string>
   audio: 'Audioguías',
   guia: 'Guía IA',
   camara: 'Cámara remota',

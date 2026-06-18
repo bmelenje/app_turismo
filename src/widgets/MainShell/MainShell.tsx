@@ -7,6 +7,12 @@ import { useUserStore } from '@/features/auth';
 import { ensureLocationPermission } from '@/features/geofencing';
 import { usePOIStore, type POI } from '@/entities/poi';
 import { MapWithPOIs } from '@/widgets/MapWithPOIs';
+
+// IMPORTACIONES DE LOS MÓDULOS DEL FLUJO DE HARDWARE (Cámara, Galería y AR)
+import { CameraPage } from '@/pages/CameraPage'; 
+import { GalleryPage } from '@/pages/GalleryPage';
+import { AugmentedRealityPage } from '@/pages/AugmentedRealityPage'; // Enlazado profesionalmente aquí
+
 import Sidebar from './sidebar';
 import BottomNav from './bottom-nav';
 import SectionView from './section-view';
@@ -30,18 +36,14 @@ export function MainShell() {
   const [section, setSection] = useState<Section>('descubrir');
   const [geofencing, setGeofencing] = useState(true);
   const [gateOpen, setGateOpen] = useState(false);
-  // Bienvenida solo la primera vez (al llegar recién registrado desde el onboarding).
   const [welcomeOpen, setWelcomeOpen] = useState(
     () => (location.state as { justRegistered?: boolean } | null)?.justRegistered === true,
   );
 
-  // Los invitados solo pueden estar en "Descubrir": cualquier otra sección abre el modal.
-  // Al entrar a la interfaz principal (registrado o invitado) pedimos ubicación.
   useEffect(() => {
     let cancelled = false;
     ensureLocationPermission().then((status) => {
       if (cancelled || status === 'granted') return;
-      // En nativo, "denied" suele ser permanente → hay que habilitarlo en Ajustes.
       const msg =
         status === 'denied' && Capacitor.isNativePlatform()
           ? '📍 Habilita la ubicación en Ajustes para alertas de cercanía y rutas'
@@ -63,7 +65,6 @@ export function MainShell() {
     setMenuOpen(false);
   }
 
-  // Abre un lugar en el mapa interactivo (desde Lugares / Descubrir)
   function openPlaceOnMap(poi: POI) {
     if (isGuest) {
       setMenuOpen(false);
@@ -75,7 +76,6 @@ export function MainShell() {
     setMenuOpen(false);
   }
 
-  // Desde el modal de invitado: lleva al login abriendo la pestaña de registro.
   function goToRegister() {
     setGateOpen(false);
     navigate('/onboarding', { state: { mode: 'register' } });
@@ -96,10 +96,10 @@ export function MainShell() {
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-background">
-      {/* Mapa funcional (MapLibre + geofencing) siempre montado como base */}
+      {/* Capa Base: Renderizado continuo del mapa */}
       <MapWithPOIs />
 
-      {/* Pantalla principal de descubrimiento (por defecto tras el login) */}
+      {/* Pantalla: Descubrir */}
       {section === 'descubrir' && (
         <Discover
           onOpenMenu={() => setMenuOpen(true)}
@@ -108,7 +108,7 @@ export function MainShell() {
         />
       )}
 
-      {/* Barra superior: menú + buscador (solo sobre el mapa) */}
+      {/* Barra superior de telemetría y búsqueda */}
       {section === 'mapa' && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-4">
           <div className="pointer-events-auto mx-auto flex max-w-md items-center gap-2 rounded-2xl bg-card/95 p-2 shadow-lg backdrop-blur-sm">
@@ -127,17 +127,45 @@ export function MainShell() {
         </div>
       )}
 
-      {/* Guía IA tiene su propia pantalla de chat */}
+      {/* Pantalla: Guía IA */}
       {section === 'guia' && <GuiaIA onBack={() => setSection('mapa')} />}
 
-      {/* Perfil con gamificación (ranking, retos y logros) */}
+      {/* Pantalla: Perfil */}
       {section === 'perfil' && <Profile onLogout={handleLogout} />}
 
-      {/* Resto de funcionalidades cubren el mapa */}
+      {/* Módulo: Cámara Fotográfica IP */}
+      {section === 'camara' && (
+        <CameraPage 
+          onBack={() => setSection('descubrir')} 
+          onNavigateToGallery={() => setSection('galeria')} 
+        />
+      )}
+
+      {/* Módulo: Galería Memory Unlock */}
+      {section === 'galeria' && (
+        <GalleryPage 
+          onBack={() => setSection('camara')} 
+        />
+      )}
+
+      {/* =================================================================== */}
+      {/* INTERCEPCIÓN DEL MÓDULO DE REALIDAD AUMENTADA */}
+      {/* =================================================================== */}
+      {section === 'ar' && (
+        <AugmentedRealityPage 
+          onBack={() => setSection('descubrir')} // Retorna al catálogo histórico al presionar atrás
+        />
+      )}
+      {/* =================================================================== */}
+
+      {/* Fallback estructural */}
       {section !== 'mapa' &&
         section !== 'guia' &&
         section !== 'descubrir' &&
-        section !== 'perfil' && (
+        section !== 'perfil' && 
+        section !== 'camara' && 
+        section !== 'galeria' &&
+        section !== 'ar' && (
           <SectionView
             section={section}
             onBack={() => setSection('descubrir')}
@@ -146,7 +174,6 @@ export function MainShell() {
           />
         )}
 
-      {/* Slider menu */}
       <Sidebar
         open={menuOpen}
         onClose={() => setMenuOpen(false)}
@@ -157,16 +184,15 @@ export function MainShell() {
         onToggleGeofencing={toggleGeofencing}
       />
 
-      {/* Botón flotante con el avatar → abre la Guía IA (oculto si ya estás en ella) */}
-      {section !== 'guia' && <AvatarFab onClick={() => handleNavigate('guia')} />}
+      {/* Escondemos el Fab de la IA en modos inmersivos para no obstruir la visión del visor */}
+      {section !== 'guia' && section !== 'camara' && section !== 'galeria' && section !== 'ar' && (
+        <AvatarFab onClick={() => handleNavigate('guia')} />
+      )}
 
-      {/* Navegación inferior */}
       <BottomNav active={section} onNavigate={handleNavigate} />
 
-      {/* Aviso de registro para invitados */}
       <GuestGateModal open={gateOpen} onClose={() => setGateOpen(false)} onRegister={goToRegister} />
 
-      {/* Bienvenida tras registrarse */}
       <WelcomeModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
     </div>
   );
