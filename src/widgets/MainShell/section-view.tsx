@@ -1,10 +1,11 @@
-import { ChevronLeft, Route as RouteIcon, Palette, Camera, MapPin, Play, Navigation, Trophy, LogOut } from 'lucide-react';
+import { ChevronLeft, Route as RouteIcon, Palette, Camera, MapPin, Play, Navigation, Trophy, Bookmark, Target, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DEMO_POIS } from '@/widgets/MapWithPOIs/demoPOIs';
 import { POI_COLORS } from '@/shared/config/constants';
 import { useUserStore } from '@/features/auth';
+import { useFavoritesStore } from '@/entities/poi';
 import { Button } from '@/shared/ui/Button';
-import { AVATAR_EMOJI, SECTION_TITLES, type Section } from './types';
+import { AVATAR_IMAGE, AVATAR_NAME, SECTION_TITLES, type Section } from './types';
 
 type Props = {
   section: Section;
@@ -82,6 +83,8 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
   const name = useUserStore((s) => s.name);
   const avatar = useUserStore((s) => s.avatar);
   const language = useUserStore((s) => s.language);
+  const savedIds = useFavoritesStore((s) => s.ids);
+  const toggleFavorite = useFavoritesStore((s) => s.toggle);
 
   let content: React.ReactNode = null;
 
@@ -214,12 +217,102 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
       </div>
     );
   } else if (section === 'favoritos') {
-    content = (
+    const saved = DEMO_POIS.filter((p) => savedIds.has(p.id));
+    content = saved.length ? (
+      <div className="flex flex-col gap-3">
+        {saved.map((poi) => (
+          <PoiRow
+            key={poi.id}
+            poi={poi}
+            onClick={() => onSelectPlace(poi)}
+            right={
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFavorite(poi.id);
+                  toast(`Quitado de guardados`, { icon: '➖' });
+                }}
+                className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary"
+                aria-label={`Quitar ${poi.name} de guardados`}
+              >
+                <Bookmark className="h-4 w-4 fill-primary" />
+              </button>
+            }
+          />
+        ))}
+      </div>
+    ) : (
       <EmptyState
-        emoji="❤️"
+        emoji="🔖"
         title="Tus favoritos"
-        desc="Toca el corazón en cualquier lugar o visita para guardarlo y encontrarlo aquí."
+        desc="Toca «Guardar» en cualquier lugar del mapa para encontrarlo aquí."
       />
+    );
+  } else if (section === 'retos') {
+    const challenges = [
+      { emoji: '🗺️', title: 'Explorador', desc: 'Visita 5 lugares del centro', done: 3, total: 5 },
+      { emoji: '🎧', title: 'Buen oído', desc: 'Escucha 3 audioguías', done: 1, total: 3 },
+      { emoji: '🧭', title: 'Caminante', desc: 'Completa una ruta guiada', done: 0, total: 1 },
+      { emoji: '🔖', title: 'Coleccionista', desc: 'Guarda 4 lugares favoritos', done: savedIds.size, total: 4 },
+      { emoji: '📷', title: 'Fotógrafo', desc: 'Toma una foto con cámara remota', done: 0, total: 1 },
+    ];
+    const completed = challenges.filter((c) => c.done >= c.total).length;
+    content = (
+      <div className="flex flex-col gap-5">
+        <div className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
+          <p className="flex items-center gap-1.5 text-sm opacity-90">
+            <Target className="h-4 w-4" /> Retos completados
+          </p>
+          <div className="mt-1 flex items-end gap-2">
+            <span className="font-heading text-4xl font-bold">{completed}</span>
+            <span className="mb-1 text-sm opacity-80">de {challenges.length}</span>
+          </div>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary-foreground/20">
+            <div
+              className="h-full rounded-full bg-accent transition-all"
+              style={{ width: `${(completed / challenges.length) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-col gap-3">
+          {challenges.map((c) => {
+            const isDone = c.done >= c.total;
+            const pct = Math.min(100, (c.done / c.total) * 100);
+            return (
+              <div
+                key={c.title}
+                className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border"
+              >
+                <div
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl ${
+                    isDone ? 'bg-accent/20' : 'bg-muted'
+                  }`}
+                >
+                  {isDone ? '🏅' : c.emoji}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h3 className="truncate font-heading text-sm font-semibold text-foreground">
+                      {c.title}
+                    </h3>
+                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
+                      {Math.min(c.done, c.total)}/{c.total}
+                    </span>
+                  </div>
+                  <p className="truncate text-xs text-muted-foreground">{c.desc}</p>
+                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                    <div
+                      className={`h-full rounded-full transition-all ${isDone ? 'bg-accent' : 'bg-primary'}`}
+                      style={{ width: `${pct}%` }}
+                    />
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     );
   } else if (section === 'galeria') {
     content = (
@@ -267,7 +360,7 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
     content = (
       <div className="flex flex-col gap-3">
         <Field label="Nombre" value={name || '—'} />
-        <Field label="Avatar" value={`${(avatar && AVATAR_EMOJI[avatar]) || '🧭'}  ${avatar ?? '—'}`} />
+        <Field label="Avatar" value={(avatar && AVATAR_NAME[avatar]) || '—'} />
         <Field label="Idioma" value={language.toUpperCase()} />
         <EmptyState
           emoji="⚙️"
@@ -279,8 +372,12 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
   } else if (section === 'perfil') {
     content = (
       <div className="flex flex-col items-center gap-4 py-6 text-center">
-        <div className="flex h-24 w-24 items-center justify-center rounded-full border-4 border-card bg-primary text-4xl shadow-lg">
-          {(avatar && AVATAR_EMOJI[avatar]) || '🧭'}
+        <div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary text-4xl shadow-lg">
+          {avatar && AVATAR_IMAGE[avatar] ? (
+            <img src={AVATAR_IMAGE[avatar]} alt="" className="h-full w-full object-cover" />
+          ) : (
+            '🧭'
+          )}
         </div>
         <div>
           <p className="font-heading text-2xl font-bold text-foreground">{name || 'Viajero'}</p>

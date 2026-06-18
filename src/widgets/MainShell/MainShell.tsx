@@ -1,8 +1,10 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Menu, Search } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { Capacitor } from '@capacitor/core';
 import { useUserStore } from '@/features/auth';
+import { ensureLocationPermission } from '@/features/geofencing';
 import { usePOIStore, type POI } from '@/entities/poi';
 import { MapWithPOIs } from '@/widgets/MapWithPOIs';
 import Sidebar from './sidebar';
@@ -11,28 +13,72 @@ import SectionView from './section-view';
 import GuiaIA from './guia-ia';
 import Discover from './discover';
 import Profile from './profile';
+import GuestGateModal from './guest-gate-modal';
+import AvatarFab from './avatar-fab';
+import WelcomeModal from './welcome-modal';
 import { ENV } from '@/shared/config/env';
 import type { Section } from './types';
 
 export function MainShell() {
   const navigate = useNavigate();
+  const location = useLocation();
   const reset = useUserStore((s) => s.reset);
+  const isGuest = useUserStore((s) => s.guest && !s.registered);
   const selectPOI = usePOIStore((s) => s.selectPOI);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [section, setSection] = useState<Section>('descubrir');
   const [geofencing, setGeofencing] = useState(true);
+  const [gateOpen, setGateOpen] = useState(false);
+  // Bienvenida solo la primera vez (al llegar recién registrado desde el onboarding).
+  const [welcomeOpen, setWelcomeOpen] = useState(
+    () => (location.state as { justRegistered?: boolean } | null)?.justRegistered === true,
+  );
+
+  // Los invitados solo pueden estar en "Descubrir": cualquier otra sección abre el modal.
+  // Al entrar a la interfaz principal (registrado o invitado) pedimos ubicación.
+  useEffect(() => {
+    let cancelled = false;
+    ensureLocationPermission().then((status) => {
+      if (cancelled || status === 'granted') return;
+      // En nativo, "denied" suele ser permanente → hay que habilitarlo en Ajustes.
+      const msg =
+        status === 'denied' && Capacitor.isNativePlatform()
+          ? '📍 Habilita la ubicación en Ajustes para alertas de cercanía y rutas'
+          : '📍 Activa la ubicación para alertas de cercanía y rutas';
+      toast(msg, { duration: 4000 });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   function handleNavigate(s: Section) {
+    if (isGuest && s !== 'descubrir') {
+      setMenuOpen(false);
+      setGateOpen(true);
+      return;
+    }
     setSection(s);
     setMenuOpen(false);
   }
 
   // Abre un lugar en el mapa interactivo (desde Lugares / Descubrir)
   function openPlaceOnMap(poi: POI) {
+    if (isGuest) {
+      setMenuOpen(false);
+      setGateOpen(true);
+      return;
+    }
     selectPOI(poi);
     setSection('mapa');
     setMenuOpen(false);
+  }
+
+  // Desde el modal de invitado: lleva al login abriendo la pestaña de registro.
+  function goToRegister() {
+    setGateOpen(false);
+    navigate('/onboarding', { state: { mode: 'register' } });
   }
 
   function handleLogout() {
@@ -57,7 +103,7 @@ export function MainShell() {
       {section === 'descubrir' && (
         <Discover
           onOpenMenu={() => setMenuOpen(true)}
-          onOpenMap={() => setSection('mapa')}
+          onOpenMap={() => handleNavigate('mapa')}
           onOpenPlace={openPlaceOnMap}
         />
       )}
@@ -111,8 +157,17 @@ export function MainShell() {
         onToggleGeofencing={toggleGeofencing}
       />
 
+      {/* Botón flotante con el avatar → abre la Guía IA (oculto si ya estás en ella) */}
+      {section !== 'guia' && <AvatarFab onClick={() => handleNavigate('guia')} />}
+
       {/* Navegación inferior */}
       <BottomNav active={section} onNavigate={handleNavigate} />
+
+      {/* Aviso de registro para invitados */}
+      <GuestGateModal open={gateOpen} onClose={() => setGateOpen(false)} onRegister={goToRegister} />
+
+      {/* Bienvenida tras registrarse */}
+      <WelcomeModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
     </div>
   );
 }

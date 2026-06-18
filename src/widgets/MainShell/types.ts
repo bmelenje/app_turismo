@@ -10,6 +10,7 @@ export type Section =
   | 'camara'
   | 'pasaporte'
   | 'favoritos'
+  | 'retos'
   | 'ajustes'
   | 'perfil';
 
@@ -25,14 +26,23 @@ export const SECTION_TITLES: Record<Section, string> = {
   camara: 'Cámara remota',
   pasaporte: 'Pasaporte',
   favoritos: 'Favoritos',
+  retos: 'Retos',
   ajustes: 'Ajustes',
   perfil: 'Perfil',
 };
 
 export const AVATAR_EMOJI: Record<string, string> = {
   sahumadora: '🌿',
-  cargero: '✝️',
-  empanada: '🥟',
-  carantanta: '🌽',
-  tamal: '🍃',
+  catedral: '⛪',
+};
+
+export const AVATAR_NAME: Record<string, string> = {
+  sahumadora: 'Sahumadora',
+  catedral: 'Catedral',
+};
+
+// Imagen de cada avatar (se usa en la selección y en toda la app)
+export const AVATAR_IMAGE: Record<string, string> = {
+  sahumadora: '/images/AvatarSahumadora.png',
+  catedral: '/images/AvatarCatedral.png',
 };

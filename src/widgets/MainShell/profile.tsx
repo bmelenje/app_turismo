@@ -2,7 +2,7 @@ import { Info, Star, Trophy, LogOut } from 'lucide-react';
 import { useUserStore } from '@/features/auth';
 import { Button } from '@/shared/ui/Button';
 import { ENV } from '@/shared/config/env';
-import { AVATAR_EMOJI } from './types';
+import { AVATAR_IMAGE } from './types';
 
 type Props = {
   onLogout: () => void;
@@ -17,7 +17,7 @@ type Challenge =
 export default function Profile({ onLogout }: Props) {
   const name = useUserStore((s) => s.name);
   const avatar = useUserStore((s) => s.avatar);
-  const emoji = (avatar && AVATAR_EMOJI[avatar]) || '🧭';
+  const avatarImage = (avatar && AVATAR_IMAGE[avatar]) || null;
 
   const level = 7;
   const points = 3450;
@@ -49,8 +49,12 @@ export default function Profile({ onLogout }: Props) {
         <section className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border">
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
-              <div className="flex h-16 w-16 items-center justify-center rounded-full border-2 border-card bg-primary text-3xl shadow-md">
-                {emoji}
+              <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-2 border-card bg-primary text-3xl shadow-md">
+                {avatarImage ? (
+                  <img src={avatarImage} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  '🧭'
+                )}
               </div>
               <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background shadow">
                 Nivel {level}
@@ -95,8 +99,12 @@ export default function Profile({ onLogout }: Props) {
                 }`}
               >
                 <RankBadge rank={r.rank} />
-                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-lg">
-                  {r.me ? emoji : '🧑'}
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-lg">
+                  {r.me && avatarImage ? (
+                    <img src={avatarImage} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    '🧑'
+                  )}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-heading text-sm font-semibold text-foreground">

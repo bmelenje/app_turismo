@@ -1,11 +1,11 @@
-import { Compass, Map, Sparkles, Heart, User } from 'lucide-react';
+import { Compass, Map, Heart, Trophy, User } from 'lucide-react';
 import type { Section } from './types';
 
 const tabs: { id: Section; label: string; icon: typeof Map }[] = [
   { id: 'descubrir', label: 'Descubrir', icon: Compass },
-  { id: 'mapa', label: 'Mapa', icon: Map },
-  { id: 'guia', label: 'Guía IA', icon: Sparkles },
   { id: 'favoritos', label: 'Favoritos', icon: Heart },
+  { id: 'mapa', label: 'Mapa', icon: Map },
+  { id: 'retos', label: 'Retos', icon: Trophy },
   { id: 'perfil', label: 'Perfil', icon: User },
 ];
 
