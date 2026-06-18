@@ -13,13 +13,23 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 }
 
 export const router = createBrowserRouter([
-  // Pantalla por defecto al arrancar la app: el login
   { path: '/',           element: <OnboardingPage /> },
   { path: '/onboarding', element: <OnboardingPage /> },
-  // Interfaz principal: barra superior + slider menu + funcionalidades
-  { path: '/home',       element: <RequireAuth><MainShell /></RequireAuth> },
-  { path: '/inicio',     element: <RequireAuth><HomePage /></RequireAuth> },
-  { path: '/map',        element: <RequireAuth><MapPage /></RequireAuth> },
-  { path: '/gallery',    element: <RequireAuth><GalleryPage /></RequireAuth> },
-  { path: '/settings',   element: <RequireAuth><SettingsPage /></RequireAuth> },
+  
+  // Convertimos a MainShell en la ruta Padre con seguridad integrada
+  {
+    path: '/',
+    element: <RequireAuth><MainShell /></RequireAuth>,
+    children: [
+      // Al entrar a /home o /inicio, se pintará el HomePage dentro del MainShell
+      { path: 'home',     element: <HomePage /> },
+      { path: 'inicio',   element: <HomePage /> },
+      { path: 'map',      element: <MapPage /> },
+      { 
+        path: 'gallery', 
+        element: <GalleryPage onBack={() => window.history.back()} /> 
+      }, // ¡Ahora sí heredará el cascarón!
+      { path: 'settings', element: <SettingsPage /> },
+    ]
+  },
 ]);

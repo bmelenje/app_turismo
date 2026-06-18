@@ -22,7 +22,6 @@ import { AVATAR_EMOJI, type Section } from './types';
 
 type NavItem = { id: Section; label: string; icon: typeof Map };
 
-// Funcionalidades de app_turismo expuestas en el slider menu
 const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: 'Explorar',
@@ -39,7 +38,7 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     items: [
       { id: 'ra', label: 'Realidad Aumentada', icon: Palette },
       { id: 'camara', label: 'Cámara remota', icon: Camera },
-      { id: 'galeria', label: 'Galería de fotos', icon: Image },
+      { id: 'galeria', label: 'Galería de fotos', icon: Image }, // Seteado correctamente con su ID 'galeria'
       { id: 'pasaporte', label: 'Pasaporte', icon: Award },
     ],
   },
@@ -185,7 +184,11 @@ export default function Sidebar({
           {/* Ajustes */}
           <button
             onClick={() => onNavigate('ajustes')}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent"
+            className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+              active === 'ajustes'
+                ? 'bg-card text-primary shadow-sm'
+                : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
+            }`}
           >
             <Settings className="h-5 w-5 text-primary" />
             <span className="flex-1 text-left">Ajustes</span>

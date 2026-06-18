@@ -1,0 +1,1 @@
+export { AugmentedRealityPage } from './AugmentedRealityPage';
