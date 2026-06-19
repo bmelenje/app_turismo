@@ -8,11 +8,11 @@ import { ensureLocationPermission } from '@/features/geofencing';
 import { usePOIStore, type POI } from '@/entities/poi';
 import { MapWithPOIs } from '@/widgets/MapWithPOIs';
 
-// IMPORTACIONES DE LOS MÓDULOS DE HARDWARE, AR Y GAMIFICACIÓN
 import { CameraPage } from '@/pages/CameraPage'; 
 import { GalleryPage } from '@/pages/GalleryPage';
 import { AugmentedRealityPage } from '@/pages/AugmentedRealityPage'; 
-import { ChallengesPage } from '@/pages/ChallengesPage'; // <-- Módulo de Retos Integrado
+import { ChallengesPage } from '@/pages/ChallengesPage';
+import { CardPage } from '@/pages/CardPage';
 
 import Sidebar from './sidebar';
 import BottomNav from './bottom-nav';
@@ -42,27 +42,23 @@ export function MainShell() {
     () => (location.state as { justRegistered?: boolean } | null)?.justRegistered === true,
   );
 
+  // Lista de secciones que ocupan pantalla completa y deben ocultar el mapa
+  const fullScreenSections = ['guia', 'camara', 'galeria', 'ar', 'ra', 'retos', 'card-caldas'];
+  const isFullScreen = fullScreenSections.includes(section);
+
   useEffect(() => {
     let cancelled = false;
     ensureLocationPermission().then((status) => {
       if (cancelled || status === 'granted') return;
-      const msg =
-        status === 'denied' && Capacitor.isNativePlatform()
-          ? '📍 Habilita la ubicación en Ajustes para alertas de cercanía y rutas'
-          : '📍 Activa la ubicación para alertas de cercanía y rutas';
+      const msg = status === 'denied' && Capacitor.isNativePlatform()
+          ? '📍 Habilita la ubicación en Ajustes para alertas de cercanía'
+          : '📍 Activa la ubicación para alertas de cercanía';
       toast(msg, { duration: 4000 });
     });
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   function handleNavigate(s: Section) {
-    if (isGuest && s !== 'descubrir') {
-      setMenuOpen(false);
-      setGateOpen(true);
-      return;
-    }
     setSection(s);
     setMenuOpen(false);
   }
@@ -78,11 +74,6 @@ export function MainShell() {
     setMenuOpen(false);
   }
 
-  function goToRegister() {
-    setGateOpen(false);
-    navigate('/onboarding', { state: { mode: 'register' } });
-  }
-
   function handleLogout() {
     reset();
     navigate('/');
@@ -91,34 +82,29 @@ export function MainShell() {
   function toggleGeofencing() {
     setGeofencing((g) => {
       const next = !g;
-      toast(next ? '🔔 Alertas de cercanía activadas' : '🔕 Alertas de cercanía desactivadas');
+      toast(next ? '🔔 Alertas activadas' : '🔕 Alertas desactivadas');
       return next;
     });
   }
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-background">
-      {/* Capa Base: Renderizado continuo del mapa */}
-      <MapWithPOIs />
+      {/* MAPA: Solo se renderiza si NO estamos en una pantalla completa */}
+      {!isFullScreen && <MapWithPOIs />}
 
-      {/* Pantalla: Descubrir */}
+      {/* RENDERIZADO DE PÁGINAS */}
       {section === 'descubrir' && (
-        <Discover
-          onOpenMenu={() => setMenuOpen(true)}
-          onOpenMap={() => handleNavigate('mapa')}
-          onOpenPlace={openPlaceOnMap}
+        <Discover 
+          onOpenMenu={() => setMenuOpen(true)} 
+          onOpenMap={() => handleNavigate('mapa')} 
+          onOpenPlace={openPlaceOnMap} 
         />
       )}
-
-      {/* Barra superior de telemetría y búsqueda */}
+      
       {section === 'mapa' && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-4">
           <div className="pointer-events-auto mx-auto flex max-w-md items-center gap-2 rounded-2xl bg-card/95 p-2 shadow-lg backdrop-blur-sm">
-            <button
-              onClick={() => setMenuOpen(true)}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground"
-              aria-label="Abrir menú"
-            >
+            <button onClick={() => setMenuOpen(true)} className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-primary-foreground">
               <Menu className="h-5 w-5" />
             </button>
             <div className="flex flex-1 items-center gap-2 px-1 text-muted-foreground">
@@ -129,7 +115,7 @@ export function MainShell() {
         </div>
       )}
 
-      {/* Pantalla: Guía IA */}
+      {/* Pantalla: Guía IA con lógica de trazado de rutas integrada */}
       {section === 'guia' && (
         <GuiaIA
           onBack={() => setSection('mapa')}
@@ -140,83 +126,45 @@ export function MainShell() {
         />
       )}
 
-      {/* Pantalla: Perfil */}
       {section === 'perfil' && <Profile onLogout={handleLogout} />}
+      {section === 'camara' && <CameraPage onBack={() => setSection('descubrir')} onNavigateToGallery={() => setSection('galeria')} />}
+      {section === 'galeria' && <GalleryPage onBack={() => setSection('camara')} />}
+      {(section === 'ar' || section === 'ra') && <AugmentedRealityPage onBack={() => setSection('descubrir')} />}
+      {section === 'retos' && <ChallengesPage onBack={() => setSection('descubrir')} />}
+      {section === 'card-caldas' && <CardPage onBack={() => setSection('descubrir')} />}
 
-      {/* Módulo: Cámara Fotográfica IP */}
-      {section === 'camara' && (
-        <CameraPage 
-          onBack={() => setSection('descubrir')} 
-          onNavigateToGallery={() => setSection('galeria')} 
-        />
+      {/* Fallback para secciones genéricas */}
+      {!['descubrir', 'mapa', 'guia', 'perfil', 'camara', 'galeria', 'ar', 'ra', 'retos', 'card-caldas'].includes(section) && (
+        <SectionView section={section} onBack={() => setSection('descubrir')} onLogout={handleLogout} onSelectPlace={openPlaceOnMap} />
       )}
 
-      {/* Módulo: Galería Memory Unlock */}
-      {section === 'galeria' && (
-        <GalleryPage 
-          onBack={() => setSection('camara')} 
-        />
-      )}
-
-      {/* =================================================================== */}
-      {/* INTERCEPCIÓN DEL MÓDULO DE REALIDAD AUMENTADA */}
-      {/* =================================================================== */}
-      {(section === 'ar' || section === 'ra') && (
-        <AugmentedRealityPage 
-          onBack={() => setSection('descubrir')} 
-        />
-      )}
-
-      {/* =================================================================== */}
-      {/* INTERCEPCIÓN DEL MÓDULO DE GAMIFICACIÓN / RETOS */}
-      {/* =================================================================== */}
-      {section === 'retos' && (
-        <ChallengesPage 
-          onBack={() => setSection('descubrir')} 
-        />
-      )}
-      {/* =================================================================== */}
-
-      {/* Fallback estructural */}
-      {section !== 'mapa' &&
-        section !== 'guia' &&
-        section !== 'descubrir' &&
-        section !== 'perfil' && 
-        section !== 'camara' && 
-        section !== 'galeria' &&
-        section !== 'ar' &&
-        section !== 'ra' &&
-        section !== 'retos' && (
-          <SectionView
-            section={section}
-            onBack={() => setSection('descubrir')}
-            onLogout={handleLogout}
-            onSelectPlace={openPlaceOnMap}
-          />
-        )}
-
-      <Sidebar
-        open={menuOpen}
-        onClose={() => setMenuOpen(false)}
-        active={section}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
-        geofencing={geofencing}
-        onToggleGeofencing={toggleGeofencing}
+      {/* INTERFAZ FIJA */}
+      <Sidebar 
+        open={menuOpen} 
+        onClose={() => setMenuOpen(false)} 
+        active={section} 
+        onNavigate={handleNavigate} 
+        onLogout={handleLogout} 
+        geofencing={geofencing} 
+        onToggleGeofencing={toggleGeofencing} 
       />
-
-      {/* Escondemos el Fab de la IA en modos inmersivos para no obstruir la visión */}
-      {section !== 'guia' && section !== 'camara' && section !== 'galeria' && section !== 'ar' && section !== 'ra' && section !== 'retos' && (
-        <AvatarFab onClick={() => handleNavigate('guia')} />
-      )}
-
+      
+      {!isFullScreen && <AvatarFab onClick={() => handleNavigate('guia')} />}
+      
       <BottomNav
         active={section}
         onNavigate={handleNavigate}
         hidden={section === 'guia' || section === 'camara' || section === 'galeria' || section === 'ar'}
       />
 
-      <GuestGateModal open={gateOpen} onClose={() => setGateOpen(false)} onRegister={goToRegister} />
+      <GuestGateModal 
+        open={gateOpen} 
+        onClose={() => setGateOpen(false)} 
+        onRegister={() => { 
+          setGateOpen(false); 
+          navigate('/onboarding', { state: { mode: 'register' } }); 
+        }} 
+      />
 
       <WelcomeModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />
     </div>

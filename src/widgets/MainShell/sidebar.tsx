@@ -1,3 +1,7 @@
+/**
+ * Sidebar.tsx
+ * Menú lateral de navegación con acceso a funcionalidades del ecosistema Caldas.
+ */
 import { useState } from 'react';
 import {
   Map,
@@ -16,11 +20,12 @@ import {
   LogOut,
   X,
   Trophy,
+  CreditCard,
 } from 'lucide-react';
 import { useUserStore } from '@/features/auth';
 import { AVATAR_IMAGE, type Section } from './types';
 
-type NavItem = { id: Section; label: string; icon: typeof Map };
+type NavItem = { id: Section; label: string; icon: any };
 
 const navGroups: { title: string; items: NavItem[] }[] = [
   {
@@ -34,11 +39,17 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Mi Cuenta',
+    items: [
+      { id: 'card-caldas', label: 'Tarjeta GO Popayán', icon: CreditCard },
+    ],
+  },
+  {
     title: 'Experiencias',
     items: [
       { id: 'ra', label: 'Realidad Aumentada', icon: Palette },
       { id: 'camara', label: 'Cámara remota', icon: Camera },
-      { id: 'galeria', label: 'Galería de fotos', icon: Image }, // Seteado correctamente con su ID 'galeria'
+      { id: 'galeria', label: 'Galería de fotos', icon: Image },
       { id: 'pasaporte', label: 'Pasaporte', icon: Award },
     ],
   },
@@ -72,7 +83,6 @@ export default function Sidebar({
 
   return (
     <>
-      {/* Overlay */}
       <div
         onClick={onClose}
         aria-hidden={!open}
@@ -81,14 +91,12 @@ export default function Sidebar({
         }`}
       />
 
-      {/* Drawer */}
       <aside
         className={`absolute inset-y-0 left-0 z-[1200] flex w-[300px] max-w-[85%] flex-col bg-sidebar text-sidebar-foreground shadow-2xl transition-transform duration-300 ease-out ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
         aria-label="Menú de navegación"
       >
-        {/* Header / perfil */}
         <div className="relative overflow-hidden p-6 pb-5">
           <img
             src="/images/popayan-hero.png"
@@ -122,7 +130,6 @@ export default function Sidebar({
           </div>
         </div>
 
-        {/* Nav: funcionalidades */}
         <nav className="flex-1 overflow-y-auto px-3 py-3">
           {navGroups.map((group) => (
             <div key={group.title} className="mb-3">
@@ -140,7 +147,7 @@ export default function Sidebar({
                       isActive
                         ? 'bg-card text-primary shadow-sm'
                         : 'text-sidebar-foreground/90 hover:bg-sidebar-accent'
-                    }`}
+                    } ${item.id === 'card-caldas' ? 'border border-primary/20 bg-primary/5' : ''}`}
                   >
                     <Icon className="h-5 w-5 shrink-0 text-primary" />
                     <span className="flex-1">{item.label}</span>
@@ -151,9 +158,7 @@ export default function Sidebar({
           ))}
         </nav>
 
-        {/* Footer: ajustes del sistema */}
         <div className="border-t border-sidebar-border p-3">
-          {/* Geofencing */}
           <button
             onClick={onToggleGeofencing}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent"
@@ -162,8 +167,6 @@ export default function Sidebar({
             <span className="flex-1 text-left">Alertas de cercanía</span>
             <Toggle on={geofencing} />
           </button>
-
-          {/* Modo offline */}
           <button
             onClick={() => setOffline((o) => !o)}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent"
@@ -172,8 +175,6 @@ export default function Sidebar({
             <span className="flex-1 text-left">Modo offline</span>
             <Toggle on={offline} />
           </button>
-
-          {/* Idioma */}
           <button
             onClick={() => setLang((l) => (l === 'ES' ? 'EN' : 'ES'))}
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-sidebar-foreground/90 transition-colors hover:bg-sidebar-accent"
@@ -184,8 +185,6 @@ export default function Sidebar({
               {lang}
             </span>
           </button>
-
-          {/* Ajustes */}
           <button
             onClick={() => onNavigate('ajustes')}
             className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
@@ -197,8 +196,6 @@ export default function Sidebar({
             <Settings className="h-5 w-5 text-primary" />
             <span className="flex-1 text-left">Ajustes</span>
           </button>
-
-          {/* Cerrar sesión */}
           <button
             onClick={onLogout}
             className="mt-1 flex w-full items-center gap-3 rounded-xl bg-primary px-3 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors hover:bg-primary/90"

@@ -13,7 +13,8 @@ export type Section =
   | 'retos'
   | 'ajustes'
   | 'perfil'
-  | 'ar'; // Mantenemos ambos para no romper herencias
+  | 'ar' // Mantenemos ambos para no romper herencias
+  | 'card-caldas';
 
 export const SECTION_TITLES: Record<Section, string> = {
   descubrir: 'Descubrir',
@@ -31,6 +32,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   retos: 'Retos',
   ajustes: 'Ajustes',
   perfil: 'Perfil',
+  'card-caldas': 'Tarjeta GO Popayán',
 };
 
 export const AVATAR_EMOJI: Record<string, string> = {
