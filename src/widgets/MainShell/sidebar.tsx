@@ -217,6 +217,7 @@ export default function Sidebar({
 function Toggle({ on }: { on: boolean }) {
   return (
     <span
+      // AQUÍ FALTABAN LAS COMILLAS INVERTIDAS ` `
       className={`relative h-5 w-9 rounded-full transition-colors ${on ? 'bg-accent' : 'bg-sidebar-accent'}`}
     >
       <span
