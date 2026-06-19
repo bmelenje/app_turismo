@@ -13,14 +13,9 @@ export type Section =
   | 'retos'
   | 'ajustes'
   | 'perfil'
-<<<<<<< HEAD
-  | 'ar'
-  | 'card-caldas'
-  | 'negocio'; // <-- 1. Agregamos el tipo literal aquí
-=======
   | 'ar' // Mantenemos ambos para no romper herencias
-  | 'card-caldas';
->>>>>>> 42e01cf6f3b670dec921692858cdda7aee06576c
+  | 'card-caldas'
+  | 'negocio';
 
 export const SECTION_TITLES: Record<Section, string> = {
   descubrir: 'Descubrir',
@@ -39,10 +34,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   ajustes: 'Ajustes',
   perfil: 'Perfil',
   'card-caldas': 'Tarjeta GO Popayán',
-<<<<<<< HEAD
-  negocio: 'Mi Negocio', // <-- 2. Satisface el Record agregando la traducción aquí
-=======
->>>>>>> 42e01cf6f3b670dec921692858cdda7aee06576c
+  'negocio': 'Tu Negocio',
 };
 
 export const AVATAR_EMOJI: Record<string, string> = {
