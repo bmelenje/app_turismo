@@ -19,7 +19,10 @@ import {
   X,
   Trophy,
   CreditCard,
+<<<<<<< HEAD
   Store, // <-- Importación del icono para la sección de negocio
+=======
+>>>>>>> 42e01cf6f3b670dec921692858cdda7aee06576c
 } from 'lucide-react';
 import { useUserStore } from '@/features/auth';
 import { AVATAR_IMAGE, type Section } from './types';
@@ -45,11 +48,21 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: 'Mi Cuenta',
+    items: [
+      { id: 'card-caldas', label: 'Tarjeta GO Popayán', icon: CreditCard },
+    ],
+  },
+  {
     title: 'Experiencias',
     items: [
       { id: 'ra', label: 'Realidad Aumentada', icon: Palette },
       { id: 'camara', label: 'Cámara remota', icon: Camera },
       { id: 'galeria', label: 'Galería de fotos', icon: Image },
+<<<<<<< HEAD
+=======
+      { id: 'pasaporte', label: 'Pasaporte', icon: Award },
+>>>>>>> 42e01cf6f3b670dec921692858cdda7aee06576c
     ],
   },
 ];
