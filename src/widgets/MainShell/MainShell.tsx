@@ -8,10 +8,11 @@ import { ensureLocationPermission } from '@/features/geofencing';
 import { usePOIStore, type POI } from '@/entities/poi';
 import { MapWithPOIs } from '@/widgets/MapWithPOIs';
 
-// IMPORTACIONES DE LOS MÓDULOS DEL FLUJO DE HARDWARE (Cámara, Galería y AR)
+// IMPORTACIONES DE LOS MÓDULOS DE HARDWARE, AR Y GAMIFICACIÓN
 import { CameraPage } from '@/pages/CameraPage'; 
 import { GalleryPage } from '@/pages/GalleryPage';
-import { AugmentedRealityPage } from '@/pages/AugmentedRealityPage'; // Enlazado profesionalmente aquí
+import { AugmentedRealityPage } from '@/pages/AugmentedRealityPage'; 
+import { ChallengesPage } from '@/pages/ChallengesPage'; // <-- Módulo de Retos Integrado
 
 import Sidebar from './sidebar';
 import BottomNav from './bottom-nav';
@@ -151,9 +152,18 @@ export function MainShell() {
       {/* =================================================================== */}
       {/* INTERCEPCIÓN DEL MÓDULO DE REALIDAD AUMENTADA */}
       {/* =================================================================== */}
-      {section === 'ar' && (
+      {(section === 'ar' || section === 'ra') && (
         <AugmentedRealityPage 
-          onBack={() => setSection('descubrir')} // Retorna al catálogo histórico al presionar atrás
+          onBack={() => setSection('descubrir')} 
+        />
+      )}
+
+      {/* =================================================================== */}
+      {/* INTERCEPCIÓN DEL MÓDULO DE GAMIFICACIÓN / RETOS */}
+      {/* =================================================================== */}
+      {section === 'retos' && (
+        <ChallengesPage 
+          onBack={() => setSection('descubrir')} 
         />
       )}
       {/* =================================================================== */}
@@ -165,7 +175,9 @@ export function MainShell() {
         section !== 'perfil' && 
         section !== 'camara' && 
         section !== 'galeria' &&
-        section !== 'ar' && (
+        section !== 'ar' &&
+        section !== 'ra' &&
+        section !== 'retos' && (
           <SectionView
             section={section}
             onBack={() => setSection('descubrir')}
@@ -184,8 +196,8 @@ export function MainShell() {
         onToggleGeofencing={toggleGeofencing}
       />
 
-      {/* Escondemos el Fab de la IA en modos inmersivos para no obstruir la visión del visor */}
-      {section !== 'guia' && section !== 'camara' && section !== 'galeria' && section !== 'ar' && (
+      {/* Escondemos el Fab de la IA en modos inmersivos para no obstruir la visión */}
+      {section !== 'guia' && section !== 'camara' && section !== 'galeria' && section !== 'ar' && section !== 'ra' && section !== 'retos' && (
         <AvatarFab onClick={() => handleNavigate('guia')} />
       )}
 
