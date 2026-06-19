@@ -33,7 +33,7 @@ const REVIEW_POOL: Review[] = [
 /**
  * Devuelve las calificaciones configuradas para el negocio.
  */
-export function getBusinessRatings(id: string): BusinessRatings {
+export function getBusinessRatings(_id: string): BusinessRatings {
   const reviews = REVIEW_POOL;
 
   const breakdown: Record<1 | 2 | 3 | 4 | 5, number> = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };

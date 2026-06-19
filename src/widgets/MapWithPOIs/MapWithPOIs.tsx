@@ -100,7 +100,12 @@ type RouteInfo = { km: string; mins: number; stops: number };
 // router no da una duración peatonal fiable.
 const WALK_METERS_PER_MIN = 5000 / 60;
 
-export function MapWithPOIs() {
+type MapWithPOIsProps = {
+  /** Abre la interfaz de cámara remota (CameraPage) para tomar una foto del lugar. */
+  onOpenCamera?: (poi: POI) => void;
+};
+
+export function MapWithPOIs({ onOpenCamera }: MapWithPOIsProps) {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const mapReady = useRef(false);
@@ -723,6 +728,14 @@ export function MapWithPOIs() {
                     className="inline-flex items-center gap-1.5 rounded-xl bg-secondary px-4 py-2.5 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
                   >
                     📷 Capturar foto
+                  </button>
+                )}
+                {FILTER_POI_IDS.fotospots.includes(selectedPOI.id) && (
+                  <button
+                    onClick={() => onOpenCamera?.(selectedPOI)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                  >
+                    📷 Tomar foto en este fotospot
                   </button>
                 )}
               </div>

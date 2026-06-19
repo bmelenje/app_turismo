@@ -2,7 +2,6 @@
  * BusinessSection.tsx
  * Panel de control directo para el negocio "La Cosecha" con el feed de comentarios de turistas.
  */
-import { useState } from 'react';
 import { ChevronLeft, Store, MapPin, Phone, Star, Pencil, Trash2, Map as MapIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { Button } from '@/shared/ui/Button';

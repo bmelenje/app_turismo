@@ -107,11 +107,13 @@ ESTILO DE RESPUESTA (muy importante):
 - 1 emoji cuando aporte calidez (no en cada frase).
 - Recuerda: todo debe ser de Popayán y nada de otra ciudad.`;
 
-/**
- * Envía la conversación a Groq y devuelve el texto de la respuesta.
- * `history` debe incluir el último turno del usuario al final.
- */
-export async function askGuia(history: ChatTurn[]): Promise<string> {
+/** Llamada base al endpoint de chat de Groq. Lanza si falta la key o si responde mal. */
+async function chatCompletion(params: {
+  system: string;
+  messages: { role: 'user' | 'assistant'; content: string }[];
+  temperature: number;
+  max_tokens: number;
+}): Promise<string> {
   if (!ENV.GROQ_API_KEY) {
     throw new Error('Falta VITE_GROQ_API_KEY en el archivo .env');
   }
@@ -124,15 +126,9 @@ export async function askGuia(history: ChatTurn[]): Promise<string> {
     },
     body: JSON.stringify({
       model: ENV.GROQ_MODEL,
-      temperature: 0.7,
-      max_tokens: 400,
-      messages: [
-        { role: 'system', content: SYSTEM_INSTRUCTION },
-        ...history.map((t) => ({
-          role: t.role,
-          content: t.text,
-        })),
-      ],
+      temperature: params.temperature,
+      max_tokens: params.max_tokens,
+      messages: [{ role: 'system', content: params.system }, ...params.messages],
     }),
   });
 
@@ -146,4 +142,57 @@ export async function askGuia(history: ChatTurn[]): Promise<string> {
 
   if (!text) throw new Error('Groq no devolvió texto.');
   return text;
+}
+
+/**
+ * Envía la conversación a Groq y devuelve el texto de la respuesta.
+ * `history` debe incluir el último turno del usuario al final.
+ */
+export async function askGuia(history: ChatTurn[]): Promise<string> {
+  return chatCompletion({
+    system: SYSTEM_INSTRUCTION,
+    messages: history.map((t) => ({ role: t.role, content: t.text })),
+    temperature: 0.7,
+    max_tokens: 400,
+  });
+}
+
+export type TranslateLang = { code: string; label: string };
+
+export const TRANSLATE_LANGUAGES: TranslateLang[] = [
+  { code: 'es', label: 'Español' },
+  { code: 'en', label: 'English' },
+  { code: 'fr', label: 'Français' },
+  { code: 'pt', label: 'Português' },
+  { code: 'it', label: 'Italiano' },
+  { code: 'de', label: 'Deutsch' },
+];
+
+/**
+ * Traduce `text` de `sourceLang` a `targetLang` (códigos ISO de TRANSLATE_LANGUAGES)
+ * usando Groq. Devuelve únicamente la traducción, sin comillas ni explicaciones.
+ */
+export async function translateText(
+  text: string,
+  sourceLang: string,
+  targetLang: string,
+): Promise<string> {
+  const trimmed = text.trim();
+  if (!trimmed) return '';
+
+  const sourceName = TRANSLATE_LANGUAGES.find((l) => l.code === sourceLang)?.label ?? sourceLang;
+  const targetName = TRANSLATE_LANGUAGES.find((l) => l.code === targetLang)?.label ?? targetLang;
+
+  const system = `Eres un motor de traducción profesional. Traduce el texto del usuario de ${sourceName} a ${targetName}.
+Reglas estrictas:
+- Responde ÚNICAMENTE con la traducción, sin comillas, sin explicaciones, sin notas y sin repetir el original.
+- Conserva el tono, los nombres propios (lugares, platos típicos) y el formato del texto original.
+- Si el texto ya está en ${targetName}, devuélvelo igual, ya correctamente formado.`;
+
+  return chatCompletion({
+    system,
+    messages: [{ role: 'user', content: trimmed }],
+    temperature: 0.2,
+    max_tokens: Math.max(120, trimmed.length * 2),
+  });
 }

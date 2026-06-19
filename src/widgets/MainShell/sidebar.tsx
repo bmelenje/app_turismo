@@ -8,7 +8,7 @@ import {
   MapPin,
   Route,
   Image,
-  Palette,
+  QrCode,
   Headphones,
   Camera,
   Bell,
@@ -45,15 +45,9 @@ const navGroups: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
-    title: 'Mi Cuenta',
-    items: [
-      { id: 'card-caldas', label: 'Tarjeta GO Popayán', icon: CreditCard },
-    ],
-  },
-  {
     title: 'Experiencias',
     items: [
-      { id: 'ra', label: 'Realidad Aumentada', icon: Palette },
+      { id: 'ra', label: 'Escáner QR y Traductor', icon: QrCode },
       { id: 'camara', label: 'Cámara remota', icon: Camera },
       { id: 'galeria', label: 'Galería de fotos', icon: Image },
     ],

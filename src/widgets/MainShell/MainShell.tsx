@@ -93,7 +93,7 @@ export function MainShell() {
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-background">
       {/* MAPA: Oculto dinámicamente si se activa una sección de pantalla completa */}
-      {!isFullScreen && <MapWithPOIs />}
+      {!isFullScreen && <MapWithPOIs onOpenCamera={() => setSection('camara')} />}
 
       {/* RENDERIZADO DE PÁGINAS */}
       {section === 'descubrir' && (
@@ -129,10 +129,21 @@ export function MainShell() {
         />
       )}
 
-      {section === 'perfil' && <Profile onLogout={handleLogout} />}
+      {section === 'perfil' && (
+        <Profile
+          onLogout={handleLogout}
+          onLogin={() => navigate('/onboarding', { state: { mode: 'register' } })}
+          onNavigate={handleNavigate}
+          isGuest={isGuest}
+          geofencing={geofencing}
+          onToggleGeofencing={toggleGeofencing}
+        />
+      )}
       {section === 'camara' && <CameraPage onBack={() => setSection('descubrir')} onNavigateToGallery={() => setSection('galeria')} />}
       {section === 'galeria' && <GalleryPage onBack={() => setSection('camara')} />}
-      {(section === 'ar' || section === 'ra') && <AugmentedRealityPage onBack={() => setSection('descubrir')} />}
+      {(section === 'ar' || section === 'ra') && (
+        <AugmentedRealityPage onBack={() => setSection('descubrir')} onSelectPlace={openPlaceOnMap} />
+      )}
       {section === 'retos' && <ChallengesPage onBack={() => setSection('descubrir')} />}
       {section === 'card-caldas' && <CardPage onBack={() => setSection('descubrir')} />}
 

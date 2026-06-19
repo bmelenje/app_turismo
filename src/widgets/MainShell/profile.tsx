@@ -1,11 +1,38 @@
-import { Info, Star, Trophy, LogOut } from 'lucide-react';
+import { useState } from 'react';
+import {
+  Info,
+  Star,
+  Trophy,
+  LogOut,
+  Bookmark,
+  ChevronDown,
+  ChevronRight,
+  Globe,
+  Bell,
+  Sparkles,
+} from 'lucide-react';
 import { useUserStore } from '@/features/auth';
+import { useFavoritesStore } from '@/entities/poi';
 import { Button } from '@/shared/ui/Button';
 import { ENV } from '@/shared/config/env';
-import { AVATAR_IMAGE } from './types';
+import { AVATAR_IMAGE, type Section } from './types';
+
+const LANGUAGE_LABEL: Record<string, string> = {
+  es: 'Español',
+  en: 'English',
+  fr: 'Français',
+  pt: 'Português',
+  it: 'Italiano',
+  de: 'Deutsch',
+};
 
 type Props = {
   onLogout: () => void;
+  onLogin: () => void;
+  onNavigate: (section: Section) => void;
+  isGuest: boolean;
+  geofencing: boolean;
+  onToggleGeofencing: () => void;
 };
 
 type RankRow = { rank: number; name: string; level: number; points: number; me?: boolean };
@@ -14,10 +41,20 @@ type Challenge =
   | { title: string; kind: 'progress'; progress: number; total: number }
   | { title: string; kind: 'points'; points: number };
 
-export default function Profile({ onLogout }: Props) {
+export default function Profile({
+  onLogout,
+  onLogin,
+  onNavigate,
+  isGuest,
+  geofencing,
+  onToggleGeofencing,
+}: Props) {
   const name = useUserStore((s) => s.name);
   const avatar = useUserStore((s) => s.avatar);
+  const language = useUserStore((s) => s.language);
   const avatarImage = (avatar && AVATAR_IMAGE[avatar]) || null;
+  const savedCount = useFavoritesStore((s) => s.ids.size);
+  const [settingsOpen, setSettingsOpen] = useState(true);
 
   const level = 7;
   const points = 3450;
@@ -29,6 +66,7 @@ export default function Profile({ onLogout }: Props) {
     { rank: 2, name: 'Andrés M.', level: 6, points: 1730 },
     { rank: 3, name: name || 'Tú', level: level, points: points, me: true },
   ];
+  const myRank = ranking.find((r) => r.me)?.rank ?? '—';
 
   const challenges: Challenge[] = [
     { title: 'Visita 3 templos en 2 horas', kind: 'progress', progress: 1, total: 3 },
@@ -38,14 +76,17 @@ export default function Profile({ onLogout }: Props) {
 
   return (
     <div className="absolute inset-0 z-[1000] flex flex-col bg-background">
-      <header className="border-b border-border bg-card px-4 py-4 text-center">
-        <h1 className="font-heading text-lg font-bold text-foreground">
-          Mi Turista: Desafío {ENV.APP_CITY}
-        </h1>
+      <header className="flex items-center justify-between border-b border-border bg-card px-4 py-4">
+        <h1 className="font-heading text-xl font-bold text-foreground">Perfil</h1>
+        {!isGuest && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-accent/15 px-2.5 py-1 text-[11px] font-bold text-accent-foreground">
+            <Sparkles className="h-3 w-3" /> Nivel {level}
+          </span>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto p-4 pb-28">
-        {/* Tarjeta de perfil */}
+        {/* Tarjeta de cuenta */}
         <section className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border">
           <div className="flex items-center gap-4">
             <div className="relative shrink-0">
@@ -56,30 +97,66 @@ export default function Profile({ onLogout }: Props) {
                   '🧭'
                 )}
               </div>
-              <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background shadow">
-                Nivel {level}
-              </span>
+              {!isGuest && (
+                <span className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-foreground px-2 py-0.5 text-[10px] font-bold text-background shadow">
+                  Nivel {level}
+                </span>
+              )}
             </div>
             <div className="min-w-0 flex-1">
               <h2 className="truncate font-heading text-lg font-bold text-foreground">
-                {name || 'Viajero'}
+                {isGuest ? 'Usuario anónimo' : name || 'Viajero'}
               </h2>
-              <p className="text-sm text-muted-foreground">Rastreador Colonial</p>
+              <p className="text-sm text-muted-foreground">
+                {isGuest ? `Explorando ${ENV.APP_CITY} sin cuenta` : 'Rastreador Colonial'}
+              </p>
             </div>
           </div>
 
-          {/* Barra de puntos */}
-          <div className="mt-5 flex items-center gap-2">
-            <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
-              <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
-            </div>
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow">
-              8
-            </span>
+          {isGuest ? (
+            <>
+              <p className="mt-4 text-sm text-muted-foreground">
+                Inicia sesión para guardar tu progreso, tus retos y tu posición en el ranking.
+              </p>
+              <Button className="mt-3 w-full" onClick={onLogin}>
+                Iniciar sesión
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* Barra de puntos */}
+              <div className="mt-5 flex items-center gap-2">
+                <div className="h-2.5 flex-1 overflow-hidden rounded-full bg-muted">
+                  <div className="h-full rounded-full bg-primary" style={{ width: `${pct}%` }} />
+                </div>
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground shadow">
+                  {level + 1}
+                </span>
+              </div>
+              <p className="mt-1.5 text-right text-xs font-medium text-muted-foreground">
+                {points.toLocaleString()} / {goal.toLocaleString()} Pts
+              </p>
+            </>
+          )}
+
+          {/* Estadísticas */}
+          <div className="mt-5 grid grid-cols-3 gap-2 border-t border-border pt-4">
+            <StatCell
+              icon={<Bookmark className="h-4 w-4" />}
+              label="Guardados"
+              value={isGuest ? '?' : savedCount}
+            />
+            <StatCell
+              icon={<Trophy className="h-4 w-4" />}
+              label="Ranking"
+              value={isGuest ? '?' : `#${myRank}`}
+            />
+            <StatCell
+              icon={<Star className="h-4 w-4" />}
+              label="Puntos"
+              value={isGuest ? '?' : points.toLocaleString()}
+            />
           </div>
-          <p className="mt-1.5 text-right text-xs font-medium text-muted-foreground">
-            {points.toLocaleString()} / {goal.toLocaleString()} Pts
-          </p>
         </section>
 
         {/* Ranking */}
@@ -152,10 +229,71 @@ export default function Profile({ onLogout }: Props) {
           </div>
         </section>
 
-        <Button variant="outline" className="mt-6 w-full" onClick={onLogout}>
-          <LogOut className="h-4 w-4" /> Cerrar sesión
-        </Button>
+        {/* Configuración */}
+        <section className="mt-6 overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border">
+          <button
+            onClick={() => setSettingsOpen((v) => !v)}
+            className="flex w-full items-center justify-between p-4"
+          >
+            <span className="font-heading text-base font-bold text-foreground">Configuración</span>
+            <ChevronDown
+              className={`h-4 w-4 text-muted-foreground transition-transform ${settingsOpen ? 'rotate-180' : ''}`}
+            />
+          </button>
+
+          {settingsOpen && (
+            <div className="flex flex-col divide-y divide-border border-t border-border">
+              <button
+                onClick={() => onNavigate('ajustes')}
+                className="flex items-center gap-3 p-4 text-left transition-colors hover:bg-muted"
+              >
+                <Globe className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <span className="flex-1 text-sm text-foreground">Idioma preferido</span>
+                <span className="text-sm text-muted-foreground">{LANGUAGE_LABEL[language] ?? language}</span>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+
+              <div className="flex items-center gap-3 p-4">
+                <Bell className="h-4 w-4 shrink-0 text-muted-foreground" />
+                <div className="flex-1">
+                  <p className="text-sm text-foreground">Alertas de cercanía</p>
+                  <p className="text-xs text-muted-foreground">Avisos al acercarte a un lugar de interés</p>
+                </div>
+                <button
+                  onClick={onToggleGeofencing}
+                  role="switch"
+                  aria-checked={geofencing}
+                  className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                    geofencing ? 'bg-primary' : 'bg-muted-foreground/25'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+                      geofencing ? 'translate-x-5' : 'translate-x-0.5'
+                    }`}
+                  />
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {!isGuest && (
+          <Button variant="outline" className="mt-6 w-full" onClick={onLogout}>
+            <LogOut className="h-4 w-4" /> Cerrar sesión
+          </Button>
+        )}
       </div>
+    </div>
+  );
+}
+
+function StatCell({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
+  return (
+    <div className="flex flex-col items-center gap-1 rounded-xl bg-muted/60 py-3 text-center">
+      <span className="text-primary">{icon}</span>
+      <span className="font-heading text-base font-bold text-foreground">{value}</span>
+      <span className="text-[10px] font-medium text-muted-foreground">{label}</span>
     </div>
   );
 }

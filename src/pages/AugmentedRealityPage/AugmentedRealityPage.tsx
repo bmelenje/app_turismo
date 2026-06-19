@@ -1,269 +1,497 @@
-import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, QrCode, Languages, Sparkles, RefreshCw, Scan, Info } from 'lucide-react';
-import { Capacitor } from '@capacitor/core';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  ChevronLeft,
+  QrCode,
+  Languages,
+  MapPin,
+  Upload,
+  Loader2,
+  ImageOff,
+  ArrowLeftRight,
+  Copy,
+  ChevronDown,
+} from 'lucide-react';
 import toast from 'react-hot-toast';
+import jsQR from 'jsqr';
+import QRCode from 'qrcode';
+import { DEMO_POIS } from '@/widgets/MapWithPOIs/demoPOIs';
+import type { POI } from '@/entities/poi';
+import { POI_COLORS } from '@/shared/config/constants';
+import { Button } from '@/shared/ui/Button';
+import { translateText, TRANSLATE_LANGUAGES } from '@/shared/api/groq';
 
-interface ARPageProps {
+type Tab = 'scan' | 'translate';
+
+type Props = {
   onBack: () => void;
+  /** Centra el lugar reconocido en el mapa (mismo flujo que "Lugares"). */
+  onSelectPlace?: (poi: POI) => void;
+};
+
+// Lugares turísticos que tendrían un código QR físico junto al monumento.
+const LANDMARKS = DEMO_POIS.filter((p) => p.category === 'interes');
+
+function qrValueForPoi(poi: POI): string {
+  return `popayan:poi:${poi.id}`;
 }
 
-const MOCK_AR_TARGETS = [
-  {
-    id: 'caldas',
-    name: 'Monumento al Sabio Caldas',
-    qrLabel: 'QR_NODO_CENTRAL_01',
-    originalText: 'Francisco José de Caldas y Tenorio. Sabio, científico y prócer de la independencia nacido en Popayán. Ejecutado en 1816.',
-    translatedText: 'Francisco Jose de Caldas y Tenorio. Scientist, polymath, and hero of New Granada independence born in Popayan. Executed in 1816.',
-    arImage: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?q=80&w=600&auto=format&fit=crop',
-    yearOverlay: 'Restauración Digital 3D'
-  },
-  {
-    id: 'catedral',
-    name: 'Catedral Basílica de Nuestra Señora',
-    qrLabel: 'QR_FACHADA_P_02',
-    originalText: 'Estructura neoclásica destruida por el terremoto de 1983 y reconstruida fielmente. Epicentro de la Semana Santa.',
-    translatedText: 'Neoclassical structure destroyed by the 1983 earthquake and faithfully rebuilt. Epicenter of Holy Week.',
-    arImage: 'https://images.unsplash.com/photo-1605649487212-47bdab064df7?q=80&w=600&auto=format&fit=crop',
-    yearOverlay: 'Capa Histórica Colonial'
-  }
-];
+/** Empareja el texto leído del QR con un lugar real de la app. */
+function matchPoiFromQrText(raw: string): POI | null {
+  const text = raw.trim();
+  if (!text) return null;
+  const m = /^popayan:poi:([a-z0-9_-]+)$/i.exec(text);
+  const id = (m ? m[1] : text).toLowerCase();
+  return (
+    DEMO_POIS.find((p) => p.id.toLowerCase() === id) ??
+    DEMO_POIS.find((p) => p.name.toLowerCase() === text.toLowerCase()) ??
+    null
+  );
+}
 
-export function AugmentedRealityPage({ onBack }: ARPageProps) {
-  // Corregido: Inicialización síncrona obligatoria para que el tag <video> exista en el DOM antes de instanciar el stream
-  const [isMobile] = useState<boolean>(() => Capacitor.isNativePlatform());
-  const [status, setStatus] = useState<'initializing' | 'scanning' | 'detected'>('initializing');
-  const [selectedTarget, setSelectedTarget] = useState(MOCK_AR_TARGETS[0]);
-  
-  const [ocrStatus, setOcrStatus] = useState<'searching' | 'parsing' | 'ready'>('searching');
-  const [isTranslating, setIsTranslating] = useState(false);
-  
-  const videoRef = useRef<HTMLVideoElement>(null);
+export function AugmentedRealityPage({ onBack, onSelectPlace }: Props) {
+  const [tab, setTab] = useState<Tab>('scan');
 
-  // Control del ciclo de hardware de la cámara IP / Local
-  useEffect(() => {
-    let activeStream: MediaStream | null = null;
+  return (
+    <div className="absolute inset-0 z-[1050] flex flex-col bg-background">
+      <header className="flex items-center gap-3 border-b border-border bg-card px-4 py-4">
+        <button
+          onClick={onBack}
+          className="rounded-lg p-1.5 text-foreground hover:bg-muted"
+          aria-label="Volver"
+        >
+          <ChevronLeft className="h-5 w-5" />
+        </button>
+        <h1 className="font-heading text-xl font-bold text-foreground">Escáner y Traductor</h1>
+      </header>
 
-    const initTimer = setTimeout(() => {
-      setStatus('scanning');
-    }, 1200);
-
-    if (isMobile) {
-      navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false })
-        .then((stream) => {
-          activeStream = stream;
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-          } else {
-            stream.getTracks().forEach(track => track.stop());
-          }
-        })
-        .catch((err) => {
-          console.error("Fallo de permisos de cámara en AR:", err);
-          toast.error('Permiso de cámara denegado para AR');
-        });
-    }
-
-    return () => {
-      clearTimeout(initTimer);
-      if (activeStream) {
-        activeStream.getTracks().forEach(track => track.stop());
-      }
-    };
-  }, [isMobile]);
-
-  // Control del pipeline de simulación OCR
-  useEffect(() => {
-    if (status === 'detected') {
-      setOcrStatus('searching');
-      setIsTranslating(false);
-
-      const parseTimer = setTimeout(() => {
-        setOcrStatus('parsing');
-      }, 1200);
-
-      const readyTimer = setTimeout(() => {
-        setOcrStatus('ready');
-        toast('Texto de placa indexado para traducción', { icon: '📝', id: 'ocr-success' });
-      }, 2600);
-
-      return () => {
-        clearTimeout(parseTimer);
-        clearTimeout(readyTimer);
-      };
-    }
-  }, [status, selectedTarget]);
-
-  const triggerScanSuccess = (targetId: string) => {
-    const target = MOCK_AR_TARGETS.find(t => t.id === targetId);
-    if (target) {
-      setSelectedTarget(target);
-      setStatus('detected');
-      toast.success('¡Código QR e hito espacial vinculados!', { icon: '🎯', id: 'qr-success' });
-    }
-  };
-
-  if (status === 'initializing') {
-    return (
-      <div className="absolute inset-0 z-[1050] flex flex-col bg-zinc-950 items-center justify-center text-center p-6 text-white font-mono">
-        <RefreshCw className="h-7 w-7 text-[#534AB7] animate-spin mb-4" />
-        <p className="text-xs tracking-widest text-zinc-400 uppercase">INICIALIZANDO MOTOR WEBAR</p>
-        <div className="mt-2 text-[9px] text-zinc-500 max-w-xs leading-relaxed">
-          [OK] Tracking Matrix Loaded <br />
-          [OK] Spatial SLAM Mesh: READY
-        </div>
+      <div className="flex gap-2 border-b border-border bg-card px-3 py-2">
+        <TabButton active={tab === 'scan'} icon={QrCode} label="Escanear QR" onClick={() => setTab('scan')} />
+        <TabButton
+          active={tab === 'translate'}
+          icon={Languages}
+          label="Traductor"
+          onClick={() => setTab('translate')}
+        />
       </div>
-    );
+
+      <div className="flex-1 overflow-y-auto">
+        {tab === 'scan' ? <QrScanTab onSelectPlace={onSelectPlace} /> : <TranslateTab />}
+      </div>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  icon: Icon,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  icon: typeof QrCode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex flex-1 items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+        active ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:bg-muted'
+      }`}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
+  );
+}
+
+// ── Escanear QR ──────────────────────────────────────────────────────────────
+
+type CameraState = 'starting' | 'ready' | 'denied' | 'unavailable';
+
+function QrScanTab({ onSelectPlace }: { onSelectPlace?: (poi: POI) => void }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const rafRef = useRef<number | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+
+  const [cameraState, setCameraState] = useState<CameraState>('starting');
+  const [result, setResult] = useState<POI | null>(null);
+  const [showCodes, setShowCodes] = useState(false);
+  const [qrImages, setQrImages] = useState<Record<string, string>>({});
+
+  // Genera los QR de cada lugar: son los que se imprimirían y ubicarían junto
+  // al monumento real, y permiten probar el lector apuntando a otra pantalla.
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      LANDMARKS.map(async (poi) => {
+        const dataUrl = await QRCode.toDataURL(qrValueForPoi(poi), {
+          width: 200,
+          margin: 1,
+          color: { dark: '#1f2430', light: '#ffffff' },
+        });
+        return [poi.id, dataUrl] as const;
+      }),
+    ).then((pairs) => {
+      if (!cancelled) setQrImages(Object.fromEntries(pairs));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const stopCamera = useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    rafRef.current = null;
+    streamRef.current?.getTracks().forEach((t) => t.stop());
+    streamRef.current = null;
+  }, []);
+
+  const scanFrame = useCallback(() => {
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    if (!video || !canvas || video.readyState !== video.HAVE_ENOUGH_DATA) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    if (!ctx || canvas.width === 0 || canvas.height === 0) {
+      rafRef.current = requestAnimationFrame(scanFrame);
+      return;
+    }
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const code = jsQR(imageData.data, imageData.width, imageData.height);
+
+    if (code) {
+      const poi = matchPoiFromQrText(code.data);
+      if (poi) {
+        setResult(poi);
+        stopCamera();
+        toast.success(`📍 ${poi.name} reconocido`);
+        return;
+      }
+    }
+    rafRef.current = requestAnimationFrame(scanFrame);
+  }, [stopCamera]);
+
+  const startCamera = useCallback(async () => {
+    setCameraState('starting');
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: { ideal: 'environment' } },
+        audio: false,
+      });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play().catch(() => {});
+      }
+      setCameraState('ready');
+      rafRef.current = requestAnimationFrame(scanFrame);
+    } catch (err) {
+      console.error('No se pudo acceder a la cámara para el escáner QR:', err);
+      const name = (err as { name?: string } | null)?.name;
+      setCameraState(name === 'NotFoundError' || name === 'OverconstrainedError' ? 'unavailable' : 'denied');
+    }
+  }, [scanFrame]);
+
+  useEffect(() => {
+    if (!result) startCamera();
+    return () => stopCamera();
+  }, [result, startCamera, stopCamera]);
+
+  function handleRescan() {
+    setResult(null);
+  }
+
+  function handleUploadImage(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      URL.revokeObjectURL(url);
+      if (!ctx) return;
+
+      ctx.drawImage(img, 0, 0);
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const code = jsQR(imageData.data, imageData.width, imageData.height);
+      if (!code) {
+        toast.error('No se detectó ningún código QR en la imagen');
+        return;
+      }
+      const poi = matchPoiFromQrText(code.data);
+      if (!poi) {
+        toast.error('Código QR no reconocido');
+        return;
+      }
+      setResult(poi);
+      toast.success(`📍 ${poi.name} reconocido`);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      toast.error('No se pudo leer la imagen');
+    };
+    img.src = url;
   }
 
   return (
-    <div className="absolute inset-0 z-[1050] flex flex-col bg-black text-white overflow-hidden animate-in fade-in duration-300">
-      
-      {/* HUD SUPERIOR */}
-      <header className="absolute top-0 left-0 right-0 z-50 flex items-center justify-between bg-gradient-to-b from-black/90 via-black/40 to-transparent px-4 py-4 font-mono">
-        <div className="flex items-center gap-3">
-          <button onClick={onBack} className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/10 backdrop-blur-md text-white border border-white/10 active:scale-95 transition-transform">
-            <ChevronLeft className="h-5 w-5" />
-          </button>
-          <div>
-            <div className="flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-              <h1 className="text-xs font-bold tracking-widest text-zinc-200">VISION_AR_CV</h1>
+    <div className="flex flex-col gap-4 p-4 pb-24">
+      {!result && (
+        <>
+          <div className="relative overflow-hidden rounded-3xl bg-zinc-950 shadow-lg" style={{ aspectRatio: '3 / 4' }}>
+            <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+            <canvas ref={canvasRef} className="hidden" />
+
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <div className="relative h-56 w-56">
+                <span className="absolute left-0 top-0 h-7 w-7 rounded-tl-lg border-l-2 border-t-2 border-white/90" />
+                <span className="absolute right-0 top-0 h-7 w-7 rounded-tr-lg border-r-2 border-t-2 border-white/90" />
+                <span className="absolute bottom-0 left-0 h-7 w-7 rounded-bl-lg border-b-2 border-l-2 border-white/90" />
+                <span className="absolute bottom-0 right-0 h-7 w-7 rounded-br-lg border-b-2 border-r-2 border-white/90" />
+              </div>
             </div>
-            <p className="text-[9px] text-zinc-400">FPS: 60.0 · Nodes: 1,420</p>
-          </div>
-        </div>
 
-        {status === 'detected' && (
-          <button 
-            onClick={() => setStatus('scanning')}
-            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/10 text-[10px] text-zinc-200 font-bold uppercase active:scale-95 transition-all"
-          >
-            <QrCode className="h-3 w-3 text-cyan-400" />
-            Reiniciar Escáner
-          </button>
-        )}
-      </header>
-
-      {/* VISOR CENTRAL DE LA CÁMARA */}
-      <div className="relative flex-1 flex items-center justify-center bg-zinc-950">
-        <div className="absolute inset-x-6 inset-y-24 pointer-events-none border-x border-white/5 flex justify-between items-center opacity-30">
-          <div className="w-3 h-[1px] bg-white"></div>
-          <div className="w-3 h-[1px] bg-white"></div>
-        </div>
-
-        {isMobile ? (
-          <video ref={videoRef} autoPlay playsInline muted className="h-full w-full object-cover opacity-75" />
-        ) : (
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,_var(--tw-gradient-stops))] from-zinc-900 via-zinc-950 to-black flex flex-col items-center justify-center p-4">
-            {status === 'scanning' && (
-              <div className="p-4 text-center max-w-xs border border-zinc-800 rounded-2xl bg-zinc-900/30 backdrop-blur-sm mb-28 animate-pulse flex items-center gap-2">
-                <Info className="h-4 w-4 text-[#534AB7] shrink-0" />
-                <p className="text-[10px] font-mono text-zinc-400 text-left">
-                  [Simulador Web] Usa los controles de inyección inferiores para disparar la detección del Pitch.
+            {cameraState === 'starting' && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/60 text-white">
+                <Loader2 className="h-6 w-6 animate-spin" />
+                <p className="text-sm">Activando cámara…</p>
+              </div>
+            )}
+            {cameraState === 'ready' && (
+              <p className="absolute inset-x-0 bottom-4 text-center text-sm font-medium text-white drop-shadow">
+                Apunta al código QR del lugar
+              </p>
+            )}
+            {(cameraState === 'denied' || cameraState === 'unavailable') && (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-zinc-900 p-6 text-center">
+                <ImageOff className="h-8 w-8 text-zinc-400" />
+                <p className="text-sm text-zinc-300">
+                  {cameraState === 'denied'
+                    ? 'No se pudo acceder a la cámara. Revisa los permisos del navegador.'
+                    : 'Este dispositivo no tiene una cámara disponible.'}
                 </p>
+                <Button size="sm" onClick={startCamera}>
+                  Reintentar
+                </Button>
               </div>
             )}
           </div>
-        )}
 
-        {/* ESTADO 1: ESCANEO */}
-        {status === 'scanning' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center p-6">
-            <div className="relative w-52 h-52 flex items-center justify-center">
-              <div className="absolute top-0 left-0 w-5 h-5 border-t-2 border-l-2 border-cyan-400"></div>
-              <div className="absolute top-0 right-0 w-5 h-5 border-t-2 border-r-2 border-cyan-400"></div>
-              <div className="absolute bottom-0 left-0 w-5 h-5 border-b-2 border-l-2 border-cyan-400"></div>
-              <div className="absolute bottom-0 right-0 w-5 h-5 border-b-2 border-r-2 border-cyan-400"></div>
-              <div className="w-full h-[2px] bg-cyan-400 shadow-md shadow-cyan-400 absolute animate-[bounce_2s_infinite]"></div>
-              <QrCode className="w-12 h-12 text-zinc-800" />
-            </div>
-            
-            <p className="mt-4 text-[10px] font-mono tracking-wider text-cyan-400 bg-black/70 px-3 py-1 rounded-full border border-cyan-500/20 uppercase">
-              Detectando Tag QR del Monumento
+          <button
+            onClick={() => fileInputRef.current?.click()}
+            className="flex items-center justify-center gap-2 rounded-2xl border border-dashed border-border bg-card py-3 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted"
+          >
+            <Upload className="h-4 w-4" /> Subir foto de un código QR
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleUploadImage} />
+        </>
+      )}
+
+      {result && <ResultCard poi={result} onRescan={handleRescan} onSelectPlace={onSelectPlace} />}
+
+      {/* Códigos QR de los lugares: los que se ubicarían físicamente en cada sitio */}
+      <div className="rounded-2xl bg-card p-4 shadow-sm ring-1 ring-border">
+        <button onClick={() => setShowCodes((v) => !v)} className="flex w-full items-center justify-between">
+          <span className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <QrCode className="h-4 w-4 text-primary" /> Códigos QR de los lugares
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition-transform ${showCodes ? 'rotate-180' : ''}`}
+          />
+        </button>
+
+        {showCodes && (
+          <>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Estos son los códigos que se ubicarían junto a cada monumento. Pruébalos apuntando la cámara a la
+              pantalla de otro dispositivo.
             </p>
-
-            <div className="absolute bottom-24 inset-x-4 flex flex-col gap-1.5 max-w-xs mx-auto z-50">
-              <span className="text-[9px] font-mono text-center text-zinc-500 block uppercase tracking-widest">Inyectar QR (Demo Control)</span>
-              <div className="grid grid-cols-2 gap-2">
-                <button onClick={() => triggerScanSuccess('caldas')} className="py-2.5 px-3 bg-[#534AB7] hover:bg-[#4339a2] text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-lg shadow-purple-950/20">
-                  Sabio Caldas
-                </button>
-                <button onClick={() => triggerScanSuccess('catedral')} className="py-2.5 px-3 bg-[#534AB7] hover:bg-[#4339a2] text-white rounded-xl text-xs font-bold transition-all active:scale-95 shadow-lg shadow-purple-950/20">
-                  La Catedral
-                </button>
-              </div>
+            <div className="mt-3 grid grid-cols-3 gap-3">
+              {LANDMARKS.map((poi) => (
+                <div key={poi.id} className="flex flex-col items-center gap-1.5 rounded-xl bg-muted p-2 text-center">
+                  {qrImages[poi.id] ? (
+                    <img src={qrImages[poi.id]} alt={`Código QR de ${poi.name}`} className="h-16 w-16 rounded-md bg-white p-1" />
+                  ) : (
+                    <div className="h-16 w-16 animate-pulse rounded-md bg-border" />
+                  )}
+                  <span className="line-clamp-2 text-[10px] font-medium text-foreground">{poi.name}</span>
+                </div>
+              ))}
             </div>
-          </div>
+          </>
         )}
+      </div>
+    </div>
+  );
+}
 
-        {/* ESTADO 2: DETECTADO */}
-        {status === 'detected' && (
-          <div className="absolute inset-0 flex flex-col justify-between p-4">
-            <div className="flex-1 flex items-center justify-center mt-16 mb-44 animate-in zoom-in-95 duration-300">
-              <div className="relative rounded-2xl overflow-hidden border border-cyan-500/20 shadow-2xl max-w-xs w-60 aspect-square bg-zinc-900/90 backdrop-blur-sm">
-                <img src={selectedTarget.arImage} alt="AR Render" className="w-full h-full object-cover mix-blend-screen opacity-85" />
-                <div className="absolute bottom-2 right-2 bg-cyan-900/80 backdrop-blur-md text-cyan-300 text-[8px] font-mono px-2 py-0.5 rounded border border-cyan-500/30 uppercase tracking-widest">
-                  {selectedTarget.yearOverlay}
-                </div>
-                <div className="absolute inset-0 pointer-events-none bg-[radial-gradient(rgba(34,211,238,0.1)_1px,transparent_1px)] [background-size:10px_10px]" />
-              </div>
-            </div>
+function ResultCard({
+  poi,
+  onRescan,
+  onSelectPlace,
+}: {
+  poi: POI;
+  onRescan: () => void;
+  onSelectPlace?: (poi: POI) => void;
+}) {
+  const color = POI_COLORS[poi.category as keyof typeof POI_COLORS] || POI_COLORS.custom;
+  return (
+    <div className="animate-in fade-in zoom-in-95 overflow-hidden rounded-3xl bg-card shadow-lg ring-1 ring-border duration-300">
+      {poi.imageUrl && (
+        <div className="h-40 w-full bg-cover bg-center" style={{ backgroundImage: `url(${poi.imageUrl})` }} />
+      )}
+      <div className="p-4">
+        <span
+          className="inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold text-white"
+          style={{ backgroundColor: color }}
+        >
+          Código reconocido
+        </span>
+        <h2 className="mt-2 font-heading text-lg font-bold text-foreground">{poi.name}</h2>
+        <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{poi.description}</p>
 
-            <div className="w-full max-w-sm mx-auto bg-zinc-900/95 backdrop-blur-md rounded-2xl border border-zinc-800 p-3.5 shadow-xl mb-16 z-10 transition-all">
-              <div className="flex items-start justify-between gap-2 border-b border-zinc-800/60 pb-2 mb-2.5">
-                <div>
-                  <span className="text-[9px] font-mono text-cyan-400 font-bold tracking-wider">{selectedTarget.qrLabel}</span>
-                  <h3 className="font-heading text-sm font-bold text-zinc-100">{selectedTarget.name}</h3>
-                </div>
+        <div className="mt-4 grid grid-cols-2 gap-2">
+          <Button onClick={() => onSelectPlace?.(poi)} disabled={!onSelectPlace}>
+            <MapPin className="h-4 w-4" /> Ver en el mapa
+          </Button>
+          <Button variant="outline" onClick={onRescan}>
+            <QrCode className="h-4 w-4" /> Escanear otro
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
-                <button
-                  disabled={ocrStatus !== 'ready'}
-                  onClick={() => setIsTranslating(!isTranslating)}
-                  className={`flex items-center gap-1 py-1 px-2.5 rounded-lg text-[11px] font-bold border transition-all active:scale-95 disabled:opacity-30 disabled:pointer-events-none ${
-                    isTranslating ? 'bg-amber-500 text-zinc-950 border-amber-500 font-mono shadow-md shadow-amber-500/10' : 'bg-zinc-800 text-zinc-300 border-zinc-700 hover:bg-zinc-700'
-                  }`}
-                >
-                  <Languages className="h-3 w-3" />
-                  {isTranslating ? 'SPANISH' : 'ENGLISH'}
-                </button>
-              </div>
+// ── Traductor en tiempo real (Groq) ──────────────────────────────────────────
 
-              <div className="bg-black/50 rounded-xl p-2.5 border border-zinc-800/80 min-h-[72px] flex flex-col justify-center relative overflow-hidden">
-                {ocrStatus === 'searching' && (
-                  <div className="flex items-center gap-2 font-mono text-[10px] text-zinc-400 animate-pulse">
-                    <Scan className="h-3.5 w-3.5 text-zinc-500 animate-spin" />
-                    <span>Buscando caracteres en placa física...</span>
-                  </div>
-                )}
+function TranslateTab() {
+  const [sourceLang, setSourceLang] = useState('es');
+  const [targetLang, setTargetLang] = useState('en');
+  const [sourceText, setSourceText] = useState('');
+  const [translated, setTranslated] = useState('');
+  const [loading, setLoading] = useState(false);
+  const requestId = useRef(0);
+  const debounceRef = useRef<number | null>(null);
 
-                {ocrStatus === 'parsing' && (
-                  <div className="w-full py-1 border border-dashed border-amber-500/40 bg-amber-500/5 rounded relative text-center animate-pulse">
-                    <div className="w-full h-[1px] bg-amber-400/70 absolute top-0 animate-[bounce_1.2s_infinite]" />
-                    <span className="text-[8px] font-mono text-amber-400 tracking-widest uppercase">[OCR_MATRIX_LOCKING]</span>
-                  </div>
-                )}
+  useEffect(() => {
+    if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
 
-                {ocrStatus === 'ready' && (
-                  <div className="animate-in fade-in duration-300">
-                    {isTranslating ? (
-                      <p className="text-xs text-amber-300 font-mono leading-relaxed">
-                        <Sparkles className="h-3 w-3 inline mr-1 text-amber-400 fill-amber-400 animate-pulse" />
-                        "{selectedTarget.translatedText}"
-                      </p>
-                    ) : (
-                      <p className="text-xs text-zinc-300 leading-relaxed">"{selectedTarget.originalText}"</p>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
+    if (!sourceText.trim()) {
+      setTranslated('');
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    debounceRef.current = window.setTimeout(() => {
+      const id = ++requestId.current;
+      translateText(sourceText, sourceLang, targetLang)
+        .then((result) => {
+          if (id === requestId.current) setTranslated(result);
+        })
+        .catch((err) => {
+          if (id !== requestId.current) return;
+          const detail = err instanceof Error ? err.message : 'Error desconocido';
+          toast.error(`No se pudo traducir: ${detail}`);
+        })
+        .finally(() => {
+          if (id === requestId.current) setLoading(false);
+        });
+    }, 600);
+
+    return () => {
+      if (debounceRef.current !== null) window.clearTimeout(debounceRef.current);
+    };
+  }, [sourceText, sourceLang, targetLang]);
+
+  function handleSwap() {
+    setSourceLang(targetLang);
+    setTargetLang(sourceLang);
+    setSourceText(translated);
+    setTranslated(sourceText);
+  }
+
+  function handleCopy() {
+    if (!translated) return;
+    navigator.clipboard.writeText(translated).then(() => toast.success('Traducción copiada'));
+  }
+
+  return (
+    <div className="flex flex-col gap-4 p-4 pb-24">
+      <div className="overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border">
+        <div className="flex items-center justify-between gap-2 border-b border-border p-3">
+          <LangSelect value={sourceLang} onChange={setSourceLang} />
+          <button
+            onClick={handleSwap}
+            aria-label="Intercambiar idiomas"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeftRight className="h-4 w-4" />
+          </button>
+          <LangSelect value={targetLang} onChange={setTargetLang} />
+        </div>
+
+        <textarea
+          value={sourceText}
+          onChange={(e) => setSourceText(e.target.value)}
+          placeholder="Escribe el texto a traducir…"
+          rows={4}
+          className="w-full resize-none bg-transparent p-3 text-base text-foreground outline-none placeholder:text-muted-foreground"
+        />
+      </div>
+
+      <div className="min-h-[96px] rounded-2xl bg-primary/5 p-3 ring-1 ring-primary/15">
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin" /> Traduciendo…
           </div>
+        ) : translated ? (
+          <div className="flex items-start justify-between gap-2">
+            <p className="text-base leading-relaxed text-foreground">{translated}</p>
+            <button
+              onClick={handleCopy}
+              aria-label="Copiar traducción"
+              className="shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+            >
+              <Copy className="h-4 w-4" />
+            </button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">La traducción aparecerá aquí…</p>
         )}
       </div>
 
-      <footer className="bg-zinc-950 p-4 pb-6 border-t border-zinc-900 text-center font-mono text-[10px] text-zinc-600 tracking-wider">
-        SYSTEM STATE: COGNITIVE OVERLAY SECURE
-      </footer>
+      <p className="px-1 text-center text-[11px] text-muted-foreground">
+        Traducción potenciada por IA (Groq) · puede contener imprecisiones
+      </p>
     </div>
+  );
+}
+
+function LangSelect({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="flex-1 rounded-xl bg-muted px-3 py-2 text-sm font-medium text-foreground outline-none"
+    >
+      {TRANSLATE_LANGUAGES.map((l) => (
+        <option key={l.code} value={l.code}>
+          {l.label}
+        </option>
+      ))}
+    </select>
   );
 }

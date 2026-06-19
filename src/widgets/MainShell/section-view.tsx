@@ -1,4 +1,4 @@
-import { ChevronLeft, Route as RouteIcon, Palette, Camera, MapPin, Play, Navigation, Trophy, Bookmark, Target, LogOut } from 'lucide-react';
+import { ChevronLeft, Route as RouteIcon, Camera, MapPin, Play, Navigation, Trophy, Bookmark, Star, LogOut } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { DEMO_POIS } from '@/widgets/MapWithPOIs/demoPOIs';
 import { POI_COLORS } from '@/shared/config/constants';
@@ -163,34 +163,6 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
         </ol>
       </div>
     );
-  } else if (section === 'ra') {
-    const raPois = DEMO_POIS.filter((p) => p.category === 'ra');
-    content = (
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3 rounded-2xl bg-[#534AB7]/10 p-4 ring-1 ring-[#534AB7]/30">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#534AB7] text-white">
-            <Palette className="h-6 w-6" />
-          </div>
-          <p className="text-sm text-foreground">
-            Apunta tu cámara a los puntos marcados para ver reconstrucciones históricas en 3D (WebAR).
-          </p>
-        </div>
-        {raPois.map((poi) => (
-          <PoiRow
-            key={poi.id}
-            poi={poi}
-            right={
-              <button
-                onClick={() => toast('🎨 Abriendo experiencia AR…', { icon: '🕶️' })}
-                className="rounded-lg bg-[#534AB7] px-3 py-1.5 text-xs font-semibold text-white"
-              >
-                Ver
-              </button>
-            }
-          />
-        ))}
-      </div>
-    );
   } else if (section === 'camara') {
     const cams = DEMO_POIS.filter((p) => p.category === 'camara');
     content = (
@@ -250,29 +222,81 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
     );
   } else if (section === 'retos') {
     const challenges = [
-      { emoji: '🗺️', title: 'Explorador', desc: 'Visita 5 lugares del centro', done: 3, total: 5 },
-      { emoji: '🎧', title: 'Buen oído', desc: 'Escucha 3 audioguías', done: 1, total: 3 },
-      { emoji: '🧭', title: 'Caminante', desc: 'Completa una ruta guiada', done: 0, total: 1 },
-      { emoji: '🔖', title: 'Coleccionista', desc: 'Guarda 4 lugares favoritos', done: savedIds.size, total: 4 },
-      { emoji: '📷', title: 'Fotógrafo', desc: 'Toma una foto con cámara remota', done: 0, total: 1 },
+      { emoji: '🗺️', title: 'Explorador', desc: 'Visita 5 lugares del centro', done: 3, total: 5, points: 50, color: '#E8730C' },
+      { emoji: '🎧', title: 'Buen oído', desc: 'Escucha 3 audioguías', done: 1, total: 3, points: 30, color: '#1A73E8' },
+      { emoji: '🧭', title: 'Caminante', desc: 'Completa una ruta guiada', done: 0, total: 1, points: 40, color: '#0F9D58' },
+      { emoji: '🔖', title: 'Coleccionista', desc: 'Guarda 4 lugares favoritos', done: savedIds.size, total: 4, points: 25, color: '#8B5CF6' },
+      { emoji: '📷', title: 'Fotógrafo', desc: 'Toma una foto con cámara remota', done: 0, total: 1, points: 35, color: '#EA4335' },
     ];
     const completed = challenges.filter((c) => c.done >= c.total).length;
+    const earned = challenges.reduce((s, c) => s + (c.done >= c.total ? c.points : 0), 0);
+    const totalPoints = challenges.reduce((s, c) => s + c.points, 0);
+    const overall = Math.round((completed / challenges.length) * 100);
+    const level = 1 + Math.floor(earned / 50);
+
     content = (
       <div className="flex flex-col gap-5">
-        <div className="rounded-2xl bg-secondary p-5 text-secondary-foreground">
-          <p className="flex items-center gap-1.5 text-sm opacity-90">
-            <Target className="h-4 w-4" /> Retos completados
-          </p>
-          <div className="mt-1 flex items-end gap-2">
-            <span className="font-heading text-4xl font-bold">{completed}</span>
-            <span className="mb-1 text-sm opacity-80">de {challenges.length}</span>
+        {/* HERO de progreso */}
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-secondary to-secondary/75 p-5 text-secondary-foreground shadow-lg">
+          {/* círculos decorativos */}
+          <div className="pointer-events-none absolute -right-8 -top-10 h-36 w-36 rounded-full bg-white/10" />
+          <div className="pointer-events-none absolute -bottom-12 -left-8 h-32 w-32 rounded-full bg-white/5" />
+
+          <div className="relative flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-2.5 py-1 text-xs font-bold backdrop-blur-sm">
+                <Trophy className="h-3.5 w-3.5" /> Nivel {level}
+              </span>
+              <p className="mt-3 font-heading text-4xl font-bold leading-none">
+                {earned}
+                <span className="ml-1 text-base font-semibold opacity-80">pts</span>
+              </p>
+              <p className="mt-1.5 text-sm opacity-85">
+                {completed} de {challenges.length} retos completados
+              </p>
+            </div>
+
+            {/* anillo de progreso */}
+            <div className="relative flex h-[88px] w-[88px] shrink-0 items-center justify-center">
+              <svg viewBox="0 0 36 36" className="h-[88px] w-[88px] -rotate-90">
+                <circle cx="18" cy="18" r="15.9155" fill="none" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3.2" />
+                <circle
+                  cx="18"
+                  cy="18"
+                  r="15.9155"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3.2"
+                  strokeLinecap="round"
+                  strokeDasharray={`${overall} 100`}
+                  className="text-accent transition-all duration-500"
+                />
+              </svg>
+              <span className="absolute font-heading text-lg font-bold">{overall}%</span>
+            </div>
           </div>
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-secondary-foreground/20">
-            <div
-              className="h-full rounded-full bg-accent transition-all"
-              style={{ width: `${(completed / challenges.length) * 100}%` }}
-            />
+
+          {/* barra de puntos hacia el total */}
+          <div className="relative mt-4">
+            <div className="mb-1.5 flex justify-between text-[11px] font-medium opacity-85">
+              <span>{earned} pts</span>
+              <span>Meta · {totalPoints} pts</span>
+            </div>
+            <div className="h-2 overflow-hidden rounded-full bg-white/25">
+              <div
+                className="h-full rounded-full bg-accent transition-all duration-500"
+                style={{ width: `${(earned / totalPoints) * 100}%` }}
+              />
+            </div>
           </div>
+        </div>
+
+        {/* Lista de retos */}
+        <div className="flex items-center justify-between px-0.5">
+          <h2 className="font-heading text-base font-bold text-foreground">Tus retos</h2>
+          <span className="rounded-full bg-muted px-2.5 py-0.5 text-xs font-semibold text-muted-foreground">
+            {completed}/{challenges.length}
+          </span>
         </div>
 
         <div className="flex flex-col gap-3">
@@ -282,30 +306,48 @@ export default function SectionView({ section, onBack, onLogout, onSelectPlace }
             return (
               <div
                 key={c.title}
-                className="flex items-center gap-3 rounded-2xl bg-card p-3 shadow-sm ring-1 ring-border"
+                className={`relative overflow-hidden rounded-2xl bg-card p-4 shadow-sm ring-1 transition-shadow hover:shadow-md ${
+                  isDone ? 'ring-2 ring-accent/45' : 'ring-border'
+                }`}
               >
-                <div
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-xl ${
-                    isDone ? 'bg-accent/20' : 'bg-muted'
-                  }`}
-                >
-                  {isDone ? '🏅' : c.emoji}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="truncate font-heading text-sm font-semibold text-foreground">
-                      {c.title}
-                    </h3>
-                    <span className="shrink-0 text-xs font-medium text-muted-foreground">
-                      {Math.min(c.done, c.total)}/{c.total}
-                    </span>
+                <div className="flex items-start gap-3.5">
+                  {/* icono con color de categoría */}
+                  <div
+                    className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-xl"
+                    style={{ backgroundColor: `${c.color}1A` }}
+                  >
+                    <span>{c.emoji}</span>
+                    {isDone && (
+                      <span className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-accent-foreground shadow ring-2 ring-card">
+                        ✓
+                      </span>
+                    )}
                   </div>
-                  <p className="truncate text-xs text-muted-foreground">{c.desc}</p>
-                  <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                    <div
-                      className={`h-full rounded-full transition-all ${isDone ? 'bg-accent' : 'bg-primary'}`}
-                      style={{ width: `${pct}%` }}
-                    />
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h3 className="truncate font-heading text-sm font-bold text-foreground">
+                        {c.title}
+                      </h3>
+                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-accent/15 px-2 py-0.5 text-[11px] font-bold text-accent-foreground">
+                        <Star className="h-3 w-3 fill-current" /> +{c.points}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{c.desc}</p>
+
+                    <div className="mt-2.5 flex items-center gap-2.5">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${isDone ? 'bg-accent' : ''}`}
+                          style={isDone ? { width: `${pct}%` } : { width: `${pct}%`, backgroundColor: c.color }}
+                        />
+                      </div>
+                      <span
+                        className={`shrink-0 text-[11px] font-bold ${isDone ? 'text-accent-foreground' : 'text-muted-foreground'}`}
+                      >
+                        {isDone ? '¡Listo!' : `${Math.min(c.done, c.total)}/${c.total}`}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

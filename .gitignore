@@ -5,8 +5,7 @@ node_modules/
 dist/
 build/
 
-# Variables de entorno (NUNCA subir)
-.env
+# Variables de entorno
 .env.local
 .env.*.local
 

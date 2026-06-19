@@ -36,14 +36,14 @@ const IGLESIAS_LISTA = [
 export function ChallengesPage({ onBack }: ChallengesPageProps) {
   const [view, setView] = useState<'menu' | 'cafe' | 'museos' | 'iglesias'>('menu');
   const [userPoints, setUserPoints] = useState(650);
-  
   const [cafePhotoTaken, setCafePhotoTaken] = useState(false);
 
-  const [museumStep, setMuseumStep] = useState<Record<string, { geo: boolean; photo: boolean }>>(
+  // Inicialización segura de estados para evitar excepciones de renderizado
+  const [museumStep, setMuseumStep] = useState<Record<string, { geo: boolean; photo: boolean }>>(() => 
     MUSEOS_LISTA.reduce((acc, m) => ({ ...acc, [m.id]: { geo: false, photo: false } }), {})
   );
   
-  const [churchStep, setChurchStep] = useState<Record<string, { geo: boolean; photo: boolean }>>(
+  const [churchStep, setChurchStep] = useState<Record<string, { geo: boolean; photo: boolean }>>(() => 
     IGLESIAS_LISTA.reduce((acc, i) => ({ ...acc, [i.id]: { geo: false, photo: false } }), {})
   );
 
@@ -68,7 +68,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
   };
 
   const handleMuseumPhoto = (museoId: string, reto: string) => {
-    if (!museumStep[museoId].geo) {
+    if (!museumStep[museoId]?.geo) {
       toast.error('Primero debes verificar tu geolocalización en el museo.');
       return;
     }
@@ -95,7 +95,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
   };
 
   const handleChurchPhoto = (iglesiaId: string, reto: string) => {
-    if (!churchStep[iglesiaId].geo) {
+    if (!churchStep[iglesiaId]?.geo) {
       toast.error('Primero debes verificar tu geolocalización en la iglesia.');
       return;
     }
@@ -122,9 +122,9 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
   ).length;
 
   return (
-    <div className="absolute inset-0 z-[2000] w-full h-full flex flex-col bg-background text-foreground overflow-y-auto font-sans">      
+    <div className="w-full flex flex-col bg-background text-foreground min-h-screen pb-24 font-sans">      
       {/* HEADER DE LA PÁGINA */}
-      <header className="sticky top-0 z-50 flex items-center justify-between bg-card px-4 py-3 border-b border-border">
+      <header className="sticky top-0 z-40 flex items-center justify-between bg-card px-4 py-3 border-b border-border">
         <div className="flex items-center gap-3">
           <button 
             onClick={view === 'menu' ? onBack : () => setView('menu')} 
@@ -143,9 +143,9 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
           </div>
         </div>
 
-        <div className="flex items-center gap-1.5 border border-border bg-muted/40 px-3 py-1 rounded-sm">
-          <Trophy className="h-3.5 w-3.5 text-foreground" />
-          <span className="text-xs font-semibold text-foreground">{userPoints} PTS</span>
+        <div className="flex items-center gap-1.5 border border-red-500/20 bg-red-500/5 px-3 py-1 rounded-sm">
+          <Trophy className="h-3.5 w-3.5 text-red-500" />
+          <span className="text-xs font-semibold text-red-500">{userPoints} PTS</span>
         </div>
       </header>
 
@@ -154,9 +154,10 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
         <div className="p-4 flex-1 flex flex-col gap-6">
           
           {/* TARJETA DE BIENVENIDA */}
-          <div className="border border-border bg-card p-4">
-            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
-              <Flame className="h-4 w-4 text-foreground" /> Racha de 3 días
+          <div className="border border-red-500/20 bg-card relative overflow-hidden p-4">
+            <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
+            <div className="flex items-center gap-1.5 text-xs font-medium text-red-500 uppercase tracking-wider mb-2">
+              <Flame className="h-4 w-4 text-red-500 fill-red-500/10" /> Racha de 3 días
             </div>
             <h2 className="text-base font-bold tracking-tight text-foreground">
               Explora, compite e interactúa
@@ -169,14 +170,14 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
           {/* RETOS DISPONIBLES */}
           <div className="flex flex-col gap-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 px-0.5">
-              <Star className="h-3.5 w-3.5 text-foreground" /> Misiones Disponibles
+              <Star className="h-3.5 w-3.5 text-red-500" /> Misiones Disponibles
             </h3>
             
             {/* Reto 1: Juan Valdez */}
-            <button onClick={() => setView('cafe')} className="group flex items-center justify-between p-3 bg-card border border-border transition-colors hover:bg-muted/50 text-left">
+            <button onClick={() => setView('cafe')} className="group flex items-center justify-between p-3 bg-card border border-border transition-colors hover:border-red-500/30 text-left">
               <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 flex items-center justify-center border ${cafePhotoTaken ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-background border-border'}`}>
-                  {cafePhotoTaken ? <CheckCircle2 className="h-4 w-4" /> : <Camera className="h-4 w-4" />}
+                <div className={`h-8 w-8 flex items-center justify-center border ${cafePhotoTaken ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-background border-border group-hover:border-red-500/40'}`}>
+                  {cafePhotoTaken ? <CheckCircle2 className="h-4 w-4" /> : <Camera className="h-4 w-4 text-red-500" />}
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
@@ -186,54 +187,54 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                   <p className="text-[11px] text-muted-foreground mt-0.5">Captura una foto con tu consumo y acumula experiencia.</p>
                 </div>
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-red-500" />
             </button>
 
             {/* Reto 2: Ruta de los Museos */}
-            <button onClick={() => setView('museos')} className="group flex items-center justify-between p-3 bg-card border border-border transition-colors hover:bg-muted/50 text-left">
+            <button onClick={() => setView('museos')} className="group flex items-center justify-between p-3 bg-card border border-border transition-colors hover:border-red-500/30 text-left">
               <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 flex items-center justify-center border ${museumCompleted ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-background border-border'}`}>
-                  {museumCompleted ? <CheckCircle2 className="h-4 w-4" /> : <MapPin className="h-4 w-4" />}
+                <div className={`h-8 w-8 flex items-center justify-center border ${museumCompleted ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-background border-border group-hover:border-red-500/40'}`}>
+                  {museumCompleted ? <CheckCircle2 className="h-4 w-4" /> : <MapPin className="h-4 w-4 text-red-500" />}
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
                     Ruta de los Museos 
                     {museumCompleted && <span className="text-xs text-emerald-500 font-normal lowercase">(completada)</span>}
                     {!museumCompleted && museumProgress > 0 && (
-                      <span className="text-xs text-muted-foreground font-normal">({museumProgress}/{MUSEOS_LISTA.length})</span>
+                      <span className="text-xs text-red-500 font-medium">({museumProgress}/{MUSEOS_LISTA.length})</span>
                     )}
                   </h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Visita museos con geolocalización y misiones especiales.</p>
                 </div>
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-red-500" />
             </button>
 
             {/* Reto 3: Ruta de las Iglesias */}
-            <button onClick={() => setView('iglesias')} className="group flex items-center justify-between p-3 bg-card border border-border transition-colors hover:bg-muted/50 text-left">
+            <button onClick={() => setView('iglesias')} className="group flex items-center justify-between p-3 bg-card border border-border transition-colors hover:border-red-500/30 text-left">
               <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 flex items-center justify-center border ${churchCompleted ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-background border-border'}`}>
-                  {churchCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+                <div className={`h-8 w-8 flex items-center justify-center border ${churchCompleted ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-background border-border group-hover:border-red-500/40'}`}>
+                  {churchCompleted ? <CheckCircle2 className="h-4 w-4" /> : <Sparkles className="h-4 w-4 text-red-500" />}
                 </div>
                 <div>
                   <h4 className="text-xs font-semibold text-foreground tracking-tight flex items-center gap-1.5">
                     Ruta del Arte Sacro 
                     {churchCompleted && <span className="text-xs text-emerald-500 font-normal lowercase">(completada)</span>}
                     {!churchCompleted && churchProgress > 0 && (
-                      <span className="text-xs text-muted-foreground font-normal">({churchProgress}/{IGLESIAS_LISTA.length})</span>
+                      <span className="text-xs text-red-500 font-medium">({churchProgress}/{IGLESIAS_LISTA.length})</span>
                     )}
                   </h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Explora templos de la Ciudad Blanca con desafíos fotográficos.</p>
                 </div>
               </div>
-              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5" />
+              <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-0.5 group-hover:text-red-500" />
             </button>
           </div>
 
           {/* RECOMPENSAS */}
           <div className="flex flex-col gap-2 mt-2">
             <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5 px-0.5">
-              <Ticket className="h-3.5 w-3.5 text-foreground" /> Canjes Disponibles
+              <Ticket className="h-3.5 w-3.5 text-red-500" /> Canjes Disponibles
             </h3>
             <div className="flex flex-col gap-2">
               {MOCK_REWARDS.map(r => {
@@ -257,7 +258,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                       }}
                       className={`px-3 py-1.5 text-xs font-medium transition-colors border ${
                         canAfford 
-                          ? 'bg-foreground border-foreground text-background hover:bg-foreground/90' 
+                          ? 'bg-red-600 border-red-600 text-white hover:bg-red-700' 
                           : 'bg-muted text-muted-foreground/60 border-border cursor-not-allowed'
                       }`}
                     >
@@ -273,10 +274,11 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
 
       {/* VISTA 2: RETO JUAN VALDEZ */}
       {view === 'cafe' && (
-        <div className="p-4 flex-1 flex flex-col justify-between">
+        <div className="p-4 flex-1 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-4">
-            <div className="border border-border bg-card p-4">
-              <span className="text-[10px] font-medium text-muted-foreground tracking-wider block mb-1 uppercase">Misión Fotográfica</span>
+            <div className="border border-border bg-card p-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
+              <span className="text-[10px] font-medium text-red-500 tracking-wider block mb-1 uppercase">Misión Fotográfica</span>
               <h3 className="text-base font-semibold text-foreground">Café con Historia</h3>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                 Ubíquese en el establecimiento del Sector Histórico, interactúe con el entorno capturando una selfie para validar la experiencia.
@@ -294,14 +296,14 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-3">
-                  <Camera className="h-6 w-6 text-muted-foreground" />
+                  <Camera className="h-6 w-6 text-red-500" />
                   <div>
                     <p className="text-xs font-semibold text-foreground">Interfaz de Cámara</p>
                     <p className="text-[11px] text-muted-foreground mt-0.5">Capture el registro visual de la visita</p>
                   </div>
                   <button 
                     onClick={handleCafeChallenge}
-                    className="mt-2 px-4 py-2 bg-foreground text-background text-xs font-medium border border-foreground hover:bg-foreground/90 transition-colors"
+                    className="mt-2 px-4 py-2 bg-red-600 text-white text-xs font-medium border border-red-600 hover:bg-red-700 transition-colors"
                   >
                     Simular Captura
                   </button>
@@ -318,22 +320,23 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
 
       {/* VISTA 3: RUTA DE LOS MUSEOS */}
       {view === 'museos' && (
-        <div className="p-4 flex-1 flex flex-col justify-between">
+        <div className="p-4 flex-1 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-4">
-            <div className="border border-border bg-card p-4">
-              <span className="text-[10px] font-medium text-muted-foreground tracking-wider block mb-1 uppercase">Módulo Geoposicionado</span>
+            <div className="border border-border bg-card p-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
+              <span className="text-[10px] font-medium text-red-500 tracking-wider block mb-1 uppercase">Módulo Geoposicionado</span>
               <h3 className="text-base font-semibold text-foreground">Ruta del Conocimiento</h3>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                 Visite los museos del sector. Requiere la validación del sensor GPS del dispositivo. Los retos específicos otorgan puntajes adicionales.
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <div className="flex-1 h-1 bg-muted border border-border overflow-hidden">
+                <div className="flex-1 h-1.5 bg-muted border border-border overflow-hidden">
                   <div 
-                    className="h-full bg-foreground transition-all duration-500"
+                    className="h-full bg-red-500 transition-all duration-500"
                     style={{ width: `${(museumProgress / MUSEOS_LISTA.length) * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground font-medium">
+                <span className="text-xs text-red-500 font-semibold">
                   {museumProgress}/{MUSEOS_LISTA.length}
                 </span>
               </div>
@@ -341,7 +344,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
 
             <div className="flex flex-col gap-2">
               {MUSEOS_LISTA.map((museo) => {
-                const estado = museumStep[museo.id];
+                const estado = museumStep[museo.id] || { geo: false, photo: false };
                 const completado = museo.requierePhoto ? estado.photo : estado.geo;
                 
                 return (
@@ -357,8 +360,8 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                           {museo.nombre}
                           {completado && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                           {museo.requierePhoto && (
-                            <span className="text-[9px] font-medium border border-border bg-muted px-1.5 py-0.5 rounded-sm">
-                              Premium
+                            <span className="text-[9px] font-semibold border border-red-500/20 bg-red-500/5 text-red-500 px-1.5 py-0.5 rounded-sm">
+                              Especial
                             </span>
                           )}
                         </h4>
@@ -376,10 +379,10 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 border text-xs font-medium transition-colors ${
                             estado.geo 
                               ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default' 
-                              : 'bg-background border-border text-foreground hover:bg-muted'
+                              : 'bg-background border-border text-foreground hover:bg-muted hover:border-red-500/30'
                           }`}
                         >
-                          <MapPin className="h-3 w-3" />
+                          <MapPin className={`h-3 w-3 ${!estado.geo && 'text-red-500'}`} />
                           {estado.geo ? 'GPS OK' : 'Validar GPS'}
                         </button>
 
@@ -391,7 +394,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                               ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default' 
                               : !estado.geo
                                 ? 'bg-muted text-muted-foreground/40 border-border cursor-not-allowed'
-                                : 'bg-foreground border-foreground text-background hover:bg-foreground/90'
+                                : 'bg-red-600 border-red-600 text-white hover:bg-red-700'
                           }`}
                         >
                           <Camera className="h-3 w-3" />
@@ -405,10 +408,10 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                         className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border text-xs font-medium transition-colors ${
                           estado.geo 
                             ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default' 
-                            : 'bg-background border-border text-foreground hover:bg-muted'
+                            : 'bg-background border-border text-foreground hover:bg-muted hover:border-red-500/30'
                         }`}
                       >
-                        <MapPin className="h-3 w-3" />
+                        <MapPin className={`h-3 w-3 ${!estado.geo && 'text-red-500'}`} />
                         {estado.geo ? 'Check-in completo (+200 PTS)' : 'Validar ubicación (+200 PTS)'}
                       </button>
                     )}
@@ -426,22 +429,23 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
 
       {/* VISTA 4: RUTA DE LAS IGLESIAS */}
       {view === 'iglesias' && (
-        <div className="p-4 flex-1 flex flex-col justify-between">
+        <div className="p-4 flex-1 flex flex-col justify-between gap-6">
           <div className="flex flex-col gap-4">
-            <div className="border border-border bg-card p-4">
-              <span className="text-[10px] font-medium text-muted-foreground tracking-wider block mb-1 uppercase">Patrimonio Religioso</span>
+            <div className="border border-border bg-card p-4 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-1 h-full bg-red-500" />
+              <span className="text-[10px] font-medium text-red-500 tracking-wider block mb-1 uppercase">Patrimonio Religioso</span>
               <h3 className="text-base font-semibold text-foreground">Ruta del Arte Sacro</h3>
               <p className="text-xs text-muted-foreground leading-relaxed mt-1">
                 Explore la arquitectura e historia de los templos locales. Cada punto dispone de un método de comprobación específico.
               </p>
               <div className="mt-3 flex items-center gap-2">
-                <div className="flex-1 h-1 bg-muted border border-border overflow-hidden">
+                <div className="flex-1 h-1.5 bg-muted border border-border overflow-hidden">
                   <div 
-                    className="h-full bg-foreground transition-all duration-500"
+                    className="h-full bg-red-500 transition-all duration-500"
                     style={{ width: `${(churchProgress / IGLESIAS_LISTA.length) * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-muted-foreground font-medium">
+                <span className="text-xs text-red-500 font-semibold">
                   {churchProgress}/{IGLESIAS_LISTA.length}
                 </span>
               </div>
@@ -449,7 +453,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
 
             <div className="flex flex-col gap-2">
               {IGLESIAS_LISTA.map((iglesia) => {
-                const estado = churchStep[iglesia.id];
+                const estado = churchStep[iglesia.id] || { geo: false, photo: false };
                 const completado = iglesia.requierePhoto ? estado.photo : estado.geo;
                 
                 return (
@@ -465,8 +469,8 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                           {iglesia.nombre}
                           {completado && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
                           {iglesia.requierePhoto && (
-                            <span className="text-[9px] font-medium border border-border bg-muted px-1.5 py-0.5 rounded-sm">
-                              Premium
+                            <span className="text-[9px] font-semibold border border-red-500/20 bg-red-500/5 text-red-500 px-1.5 py-0.5 rounded-sm">
+                              Especial
                             </span>
                           )}
                         </h4>
@@ -484,10 +488,10 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                           className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 border text-xs font-medium transition-colors ${
                             estado.geo 
                               ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default' 
-                              : 'bg-background border-border text-foreground hover:bg-muted'
+                              : 'bg-background border-border text-foreground hover:bg-muted hover:border-red-500/30'
                           }`}
                         >
-                          <MapPin className="h-3 w-3" />
+                          <MapPin className={`h-3 w-3 ${!estado.geo && 'text-red-500'}`} />
                           {estado.geo ? 'GPS OK' : 'Check-in GPS'}
                         </button>
 
@@ -499,7 +503,7 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                               ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default' 
                               : !estado.geo
                                 ? 'bg-muted text-muted-foreground/40 border-border cursor-not-allowed'
-                                : 'bg-foreground border-foreground text-background hover:bg-foreground/90'
+                                : 'bg-red-600 border-red-600 text-white hover:bg-red-700'
                           }`}
                         >
                           <Camera className="h-3 w-3" />
@@ -513,10 +517,10 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
                         className={`w-full flex items-center justify-center gap-1.5 px-3 py-1.5 border text-xs font-medium transition-colors ${
                           estado.geo 
                             ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 cursor-default' 
-                            : 'bg-background border-border text-foreground hover:bg-muted'
+                            : 'bg-background border-border text-foreground hover:bg-muted hover:border-red-500/30'
                         }`}
                       >
-                        <MapPin className="h-3 w-3" />
+                        <MapPin className={`h-3 w-3 ${!estado.geo && 'text-red-500'}`} />
                         {estado.geo ? 'Check-in completo (+200 PTS)' : 'Hacer Check-in (+200 PTS)'}
                       </button>
                     )}
@@ -531,11 +535,6 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
           </button>
         </div>
       )}
-
-      {/* FOOTER INFORMATIVO */}
-      <footer className="sticky bottom-0 bg-card border-t border-border py-2 text-center text-[10px] text-muted-foreground tracking-wider uppercase font-medium">
-        Sara Engine — Adaptive Gamification Architecture
-      </footer>
     </div>
   );
 }
