@@ -15,14 +15,39 @@ const MOCK_REWARDS = [
   { id: 'carola', place: 'Café Carola (Sector Histórico)', reward: '15% de Descuento en la cuenta total', cost: 1500, icon: '☕' },
 ];
 
+const MUSEOS_LISTA = [
+  { id: 'mosquera', nombre: 'Casa Museo Mosquera', reto: 'Retrato al óleo del Sabio Caldas', requierePhoto: true },
+  { id: 'negret', nombre: 'Museo Negret', reto: 'Escultura geométrica', requierePhoto: false },
+  { id: 'valencia', nombre: 'Museo Guillermo Valencia', reto: 'Silla del Poeta', requierePhoto: false },
+  { id: 'natural', nombre: 'Museo de Historia Natural', reto: 'Esqueleto prehistórico', requierePhoto: false },
+  { id: 'mampo', nombre: 'MAMPO - Arte Moderno', reto: 'Obra contemporánea', requierePhoto: false },
+  { id: 'arquidiocesano', nombre: 'Museo Arquidiocesano', reto: 'Cáliz colonial', requierePhoto: false }
+];
+
+const IGLESIAS_LISTA = [
+  { id: 'sanfrancisco', nombre: 'Templo de San Francisco', reto: 'Fachada principal o campanario', requierePhoto: true },
+  { id: 'catedral', nombre: 'Catedral Basílica', reto: 'Cúpula central', requierePhoto: false },
+  { id: 'santodomingo', nombre: 'Iglesia de Santo Domingo', reto: 'Altar mayor', requierePhoto: false },
+  { id: 'sanagustin', nombre: 'Iglesia de San Agustín', reto: 'Pinturas coloniales', requierePhoto: false },
+  { id: 'ermita', nombre: 'La Ermita', reto: 'Arquitectura colonial', requierePhoto: false },
+  { id: 'belen', nombre: 'Capilla de Belén', reto: 'Mirador panorámico', requierePhoto: false }
+];
+
 export function ChallengesPage({ onBack }: ChallengesPageProps) {
   const [view, setView] = useState<'menu' | 'cafe' | 'museos' | 'iglesias'>('menu');
   const [userPoints, setUserPoints] = useState(650);
   
-  // Estados para controlar el progreso simulado de las misiones
+  // Estado del reto del café
   const [cafePhotoTaken, setCafePhotoTaken] = useState(false);
-  const [museumStep, setMuseumStep] = useState<{ geo: boolean; photo: boolean }>({ geo: false, photo: false });
-  const [churchStep, setChurchStep] = useState<{ geo: boolean; photo: boolean }>({ geo: false, photo: false });
+
+  // Estados para museos e iglesias (uno por cada elemento)
+  const [museumStep, setMuseumStep] = useState<Record<string, { geo: boolean; photo: boolean }>>(
+    MUSEOS_LISTA.reduce((acc, m) => ({ ...acc, [m.id]: { geo: false, photo: false } }), {})
+  );
+  
+  const [churchStep, setChurchStep] = useState<Record<string, { geo: boolean; photo: boolean }>>(
+    IGLESIAS_LISTA.reduce((acc, i) => ({ ...acc, [i.id]: { geo: false, photo: false } }), {})
+  );
 
   // 1. Simulación Reto Juan Valdez
   const handleCafeChallenge = () => {
@@ -32,39 +57,78 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
   };
 
   // 2. Simulación Ruta de los Museos
-  const handleMuseumGeo = () => {
-    setMuseumStep(prev => ({ ...prev, geo: true }));
-    toast.success('📍 Ubicación confirmada: Casa Museo Mosquera.');
+  const handleMuseumGeo = (museoId: string, museoNombre: string, requierePhoto: boolean) => {
+    setMuseumStep(prev => ({ 
+      ...prev, 
+      [museoId]: { ...prev[museoId], geo: true } 
+    }));
+    
+    if (!requierePhoto) {
+      setUserPoints(prev => prev + 200);
+      toast.success(`📍 ¡Check-in en ${museoNombre}! +200 Puntos Patojos`);
+    } else {
+      toast.success(`📍 Ubicación confirmada: ${museoNombre}.`);
+    }
   };
 
-  const handleMuseumPhoto = () => {
-    if (!museumStep.geo) {
+  const handleMuseumPhoto = (museoId: string, reto: string) => {
+    if (!museumStep[museoId].geo) {
       toast.error('Primero debes verificar tu geolocalización en el museo.');
       return;
     }
-    setMuseumStep(prev => ({ ...prev, photo: true }));
+    setMuseumStep(prev => ({ 
+      ...prev, 
+      [museoId]: { ...prev[museoId], photo: true } 
+    }));
     setUserPoints(prev => prev + 400);
-    toast.success('📸 ¡Foto del óleo colonial validada! +400 Puntos Patojos 🖼️');
+    toast.success(`📸 ¡Foto validada: ${reto}! +400 Puntos Patojos 🖼️`);
   };
 
   // 3. Simulación Ruta de las Iglesias
-  const handleChurchGeo = () => {
-    setChurchStep(prev => ({ ...prev, geo: true }));
-    toast.success('📍 Ubicación confirmada: Templo de San Francisco.');
+  const handleChurchGeo = (iglesiaId: string, iglesiaNombre: string, requierePhoto: boolean) => {
+    setChurchStep(prev => ({ 
+      ...prev, 
+      [iglesiaId]: { ...prev[iglesiaId], geo: true } 
+    }));
+    
+    if (!requierePhoto) {
+      setUserPoints(prev => prev + 200);
+      toast.success(`📍 ¡Check-in en ${iglesiaNombre}! +200 Puntos Patojos ⛪`);
+    } else {
+      toast.success(`📍 Ubicación confirmada: ${iglesiaNombre}.`);
+    }
   };
 
-  const handleChurchPhoto = () => {
-    if (!churchStep.geo) {
+  const handleChurchPhoto = (iglesiaId: string, reto: string) => {
+    if (!churchStep[iglesiaId].geo) {
       toast.error('Primero debes verificar tu geolocalización en la iglesia.');
       return;
     }
-    setChurchStep(prev => ({ ...prev, photo: true }));
+    setChurchStep(prev => ({ 
+      ...prev, 
+      [iglesiaId]: { ...prev[iglesiaId], photo: true } 
+    }));
     setUserPoints(prev => prev + 450);
-    toast.success('📸 ¡Foto de la fachada aprobada! +450 Puntos Patojos ⛪');
+    toast.success(`📸 ¡Foto aprobada: ${reto}! +450 Puntos Patojos ⛪`);
   };
 
+  // Helpers para calcular progreso
+  const museumCompleted = MUSEOS_LISTA.every(m => 
+    m.requierePhoto ? museumStep[m.id]?.photo : museumStep[m.id]?.geo
+  );
+  const museumProgress = MUSEOS_LISTA.filter(m => 
+    m.requierePhoto ? museumStep[m.id]?.photo : museumStep[m.id]?.geo
+  ).length;
+
+  const churchCompleted = IGLESIAS_LISTA.every(i => 
+    i.requierePhoto ? churchStep[i.id]?.photo : churchStep[i.id]?.geo
+  );
+  const churchProgress = IGLESIAS_LISTA.filter(i => 
+    i.requierePhoto ? churchStep[i.id]?.photo : churchStep[i.id]?.geo
+  ).length;
+
   return (
-        <div className="absolute inset-0 z-[2000] w-full h-full flex flex-col bg-background text-foreground overflow-y-auto">      
+    <div className="absolute inset-0 z-[2000] w-full h-full flex flex-col bg-background text-foreground overflow-y-auto">      
       {/* HUD SUPERIOR */}
       <header className="sticky top-0 z-50 flex items-center justify-between bg-background/80 backdrop-blur-xl px-4 py-3.5 border-b border-border/60">
         <div className="flex items-center gap-3">
@@ -138,15 +202,18 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
             {/* Reto 2: Ruta de los Museos */}
             <button onClick={() => setView('museos')} className="group flex items-center justify-between p-3.5 bg-card/60 border border-border/60 rounded-2xl hover:bg-card hover:border-border hover:-translate-y-0.5 active:scale-[0.99] transition-all text-left shadow-xs">
               <div className="flex gap-3 items-center">
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${museumStep.photo ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-accent/10 text-accent border border-accent/20'}`}>
-                  {museumStep.photo ? <CheckCircle2 className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${museumCompleted ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-accent/10 text-accent border border-accent/20'}`}>
+                  {museumCompleted ? <CheckCircle2 className="h-5 w-5" /> : <MapPin className="h-5 w-5" />}
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     Ruta de los Museos 
-                    {museumStep.photo && <span className="text-[9px] text-emerald-500 font-mono">(Completada)</span>}
+                    {museumCompleted && <span className="text-[9px] text-emerald-500 font-mono">(Completada)</span>}
+                    {!museumCompleted && museumProgress > 0 && (
+                      <span className="text-[9px] text-accent font-mono">({museumProgress}/{MUSEOS_LISTA.length})</span>
+                    )}
                   </h4>
-                  <p className="text-[11px] text-muted-foreground mt-0.5">Verificación por geolocalización y foto específica.</p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">Visita museos con check-in GPS y retos especiales.</p>
                 </div>
               </div>
               <ArrowRight className="h-4 w-4 text-muted-foreground/60 group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
@@ -155,13 +222,16 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
             {/* Reto 3: Ruta de las Iglesias */}
             <button onClick={() => setView('iglesias')} className="group flex items-center justify-between p-3.5 bg-card/60 border border-border/60 rounded-2xl hover:bg-card hover:border-border hover:-translate-y-0.5 active:scale-[0.99] transition-all text-left shadow-xs">
               <div className="flex gap-3 items-center">
-                <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${churchStep.photo ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
-                  {churchStep.photo ? <CheckCircle2 className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
+                <div className={`h-10 w-10 rounded-xl flex items-center justify-center transition-transform group-hover:scale-105 ${churchCompleted ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20' : 'bg-primary/10 text-primary border border-primary/20'}`}>
+                  {churchCompleted ? <CheckCircle2 className="h-5 w-5" /> : <Sparkles className="h-5 w-5" />}
                 </div>
                 <div>
                   <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5">
                     Ruta del Arte Sacro 
-                    {churchStep.photo && <span className="text-[9px] text-emerald-500 font-mono">(Completada)</span>}
+                    {churchCompleted && <span className="text-[9px] text-emerald-500 font-mono">(Completada)</span>}
+                    {!churchCompleted && churchProgress > 0 && (
+                      <span className="text-[9px] text-accent font-mono">({churchProgress}/{IGLESIAS_LISTA.length})</span>
+                    )}
                   </h4>
                   <p className="text-[11px] text-muted-foreground mt-0.5">Explora templos icónicos con misiones fotográficas.</p>
                 </div>
@@ -264,52 +334,103 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
               <span className="text-[9px] font-bold text-accent font-mono tracking-wider block mb-1">MÓDULO_GEOPOSICIONADO_Y_MULTIMEDIA</span>
               <h3 className="text-sm font-extrabold text-foreground mb-1">Ruta del Conocimiento Colonial</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Esta ruta requiere doble validación: debes estar físicamente en la zona y capturar una obra específica dentro del establecimiento.
+                Visita cada museo del centro histórico. La mayoría solo requiere validar tu ubicación. Algunos museos especiales tienen un reto fotográfico con puntos extra.
               </p>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-accent transition-all duration-500"
+                    style={{ width: `${(museumProgress / MUSEOS_LISTA.length) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {museumProgress}/{MUSEOS_LISTA.length}
+                </span>
+              </div>
             </div>
 
-            {/* Paso 1: Geo */}
-            <div className={`border p-4 rounded-xl flex items-center justify-between ${museumStep.geo ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-card/40 border-border/60'}`}>
-              <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${museumStep.geo ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                  <MapPin className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold">Paso 1: Presencia en el Museo</h4>
-                  <p className="text-[11px] text-muted-foreground">Casa Museo Mosquera</p>
-                </div>
-              </div>
-              {!museumStep.geo ? (
-                <button onClick={handleMuseumGeo} className="px-2.5 py-1.5 bg-accent text-accent-foreground font-bold text-[10px] rounded-lg">
-                  Validar GPS
-                </button>
-              ) : (
-                <span className="text-[10px] text-emerald-500 font-mono font-bold">OK</span>
-              )}
-            </div>
+            <div className="flex flex-col gap-3">
+              {MUSEOS_LISTA.map((museo) => {
+                const estado = museumStep[museo.id];
+                const completado = museo.requierePhoto ? estado.photo : estado.geo;
+                
+                return (
+                  <div 
+                    key={museo.id} 
+                    className={`border rounded-2xl p-3.5 transition-all ${
+                      completado 
+                        ? 'bg-emerald-500/5 border-emerald-500/30' 
+                        : 'bg-card/40 border-border/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 flex-wrap">
+                          {museo.nombre}
+                          {completado && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                          {museo.requierePhoto && (
+                            <span className="text-[8px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                              Reto Premium
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {museo.requierePhoto ? `🎯 ${museo.reto}` : '📍 Visita para ganar puntos'}
+                        </p>
+                      </div>
+                    </div>
 
-            {/* Paso 2: Foto */}
-            <div className={`border p-4 rounded-xl flex items-center justify-between ${museumStep.photo ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-card/40 border-border/60'} ${!museumStep.geo && 'opacity-50'}`}>
-              <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${museumStep.photo ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                  <Camera className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold">Paso 2: Foto Específica</h4>
-                  <p className="text-[11px] text-muted-foreground">Retrato al óleo del Sabio Caldas</p>
-                </div>
-              </div>
-              {!museumStep.photo ? (
-                <button onClick={handleMuseumPhoto} className="px-2.5 py-1.5 bg-primary text-primary-foreground font-bold text-[10px] rounded-lg">
-                  Tomar Foto
-                </button>
-              ) : (
-                <span className="text-[10px] text-emerald-500 font-mono font-bold">RETO OK (+400 PTS)</span>
-              )}
+                    {museo.requierePhoto ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleMuseumGeo(museo.id, museo.nombre, museo.requierePhoto)}
+                          disabled={estado.geo}
+                          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                            estado.geo 
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                              : 'bg-accent text-accent-foreground active:scale-95 hover:bg-accent/90'
+                          }`}
+                        >
+                          <MapPin className="h-3 w-3" />
+                          {estado.geo ? 'GPS OK' : 'Validar GPS'}
+                        </button>
+
+                        <button
+                          onClick={() => handleMuseumPhoto(museo.id, museo.reto)}
+                          disabled={!estado.geo || estado.photo}
+                          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                            estado.photo 
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                              : !estado.geo
+                                ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
+                                : 'bg-primary text-primary-foreground active:scale-95 hover:bg-primary/90'
+                          }`}
+                        >
+                          <Camera className="h-3 w-3" />
+                          {estado.photo ? '+400 PTS' : 'Tomar Foto'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleMuseumGeo(museo.id, museo.nombre, museo.requierePhoto)}
+                        disabled={estado.geo}
+                        className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                          estado.geo 
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                            : 'bg-accent text-accent-foreground active:scale-95 hover:bg-accent/90'
+                        }`}
+                      >
+                        <MapPin className="h-3 w-3" />
+                        {estado.geo ? 'CHECK-IN COMPLETO (+200 PTS)' : 'Validar GPS (+200 PTS)'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <button onClick={() => setView('menu')} className="w-full py-3 bg-muted text-foreground text-xs font-bold rounded-xl font-mono uppercase tracking-wider">
+          <button onClick={() => setView('menu')} className="w-full py-3 bg-muted text-foreground text-xs font-bold rounded-xl font-mono uppercase tracking-wider mt-4">
             Volver al Panel
           </button>
         </div>
@@ -323,52 +444,103 @@ export function ChallengesPage({ onBack }: ChallengesPageProps) {
               <span className="text-[9px] font-bold text-primary font-mono tracking-wider block mb-1">RUTAS_DEL_PATRIMONIO</span>
               <h3 className="text-sm font-extrabold text-foreground mb-1">Ruta del Arte Sacro</h3>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Explora la majestuosa arquitectura religiosa de la Ciudad Blanca. Visita el templo indicado y corrobora tu llegada.
+                Explora la majestuosa arquitectura religiosa de la Ciudad Blanca. Cada iglesia tiene su propio reto de validación.
               </p>
+              <div className="mt-3 flex items-center gap-2">
+                <div className="flex-1 h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-primary transition-all duration-500"
+                    style={{ width: `${(churchProgress / IGLESIAS_LISTA.length) * 100}%` }}
+                  />
+                </div>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {churchProgress}/{IGLESIAS_LISTA.length}
+                </span>
+              </div>
             </div>
 
-            {/* Paso 1: Geo */}
-            <div className={`border p-4 rounded-xl flex items-center justify-between ${churchStep.geo ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-card/40 border-border/60'}`}>
-              <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${churchStep.geo ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                  <MapPin className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold">Paso 1: Arribo al Templo</h4>
-                  <p className="text-[11px] text-muted-foreground">Iglesia de San Francisco</p>
-                </div>
-              </div>
-              {!churchStep.geo ? (
-                <button onClick={handleChurchGeo} className="px-2.5 py-1.5 bg-accent text-accent-foreground font-bold text-[10px] rounded-lg">
-                  Check-in GPS
-                </button>
-              ) : (
-                <span className="text-[10px] text-emerald-500 font-mono font-bold">SITIO CONFIRMADO</span>
-              )}
-            </div>
+            <div className="flex flex-col gap-3">
+              {IGLESIAS_LISTA.map((iglesia) => {
+                const estado = churchStep[iglesia.id];
+                const completado = iglesia.requierePhoto ? estado.photo : estado.geo;
+                
+                return (
+                  <div 
+                    key={iglesia.id} 
+                    className={`border rounded-2xl p-3.5 transition-all ${
+                      completado 
+                        ? 'bg-emerald-500/5 border-emerald-500/30' 
+                        : 'bg-card/40 border-border/60'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between mb-3">
+                      <div className="flex-1">
+                        <h4 className="text-xs font-bold text-foreground flex items-center gap-1.5 flex-wrap">
+                          {iglesia.nombre}
+                          {completado && <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />}
+                          {iglesia.requierePhoto && (
+                            <span className="text-[8px] font-mono bg-primary/10 text-primary px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                              Reto Premium
+                            </span>
+                          )}
+                        </h4>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">
+                          {iglesia.requierePhoto ? `🎯 ${iglesia.reto}` : '📍 Visita para ganar puntos'}
+                        </p>
+                      </div>
+                    </div>
 
-            {/* Paso 2: Foto */}
-            <div className={`border p-4 rounded-xl flex items-center justify-between ${churchStep.photo ? 'bg-emerald-500/5 border-emerald-500/30' : 'bg-card/40 border-border/60'} ${!churchStep.geo && 'opacity-50'}`}>
-              <div className="flex gap-3 items-center">
-                <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${churchStep.photo ? 'bg-emerald-500/10 text-emerald-500' : 'bg-muted text-muted-foreground'}`}>
-                  <Camera className="h-4 w-4" />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold">Paso 2: Foto Arquitectónica</h4>
-                  <p className="text-[11px] text-muted-foreground">Fachada principal o campanario</p>
-                </div>
-              </div>
-              {!churchStep.photo ? (
-                <button onClick={handleChurchPhoto} className="px-2.5 py-1.5 bg-primary text-primary-foreground font-bold text-[10px] rounded-lg">
-                  Capturar Foto
-                </button>
-              ) : (
-                <span className="text-[10px] text-emerald-500 font-mono font-bold">RETO OK (+450 PTS)</span>
-              )}
+                    {iglesia.requierePhoto ? (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => handleChurchGeo(iglesia.id, iglesia.nombre, iglesia.requierePhoto)}
+                          disabled={estado.geo}
+                          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                            estado.geo 
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                              : 'bg-accent text-accent-foreground active:scale-95 hover:bg-accent/90'
+                          }`}
+                        >
+                          <MapPin className="h-3 w-3" />
+                          {estado.geo ? 'GPS OK' : 'Check-in GPS'}
+                        </button>
+
+                        <button
+                          onClick={() => handleChurchPhoto(iglesia.id, iglesia.reto)}
+                          disabled={!estado.geo || estado.photo}
+                          className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                            estado.photo 
+                              ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                              : !estado.geo
+                                ? 'bg-muted text-muted-foreground/50 cursor-not-allowed'
+                                : 'bg-primary text-primary-foreground active:scale-95 hover:bg-primary/90'
+                          }`}
+                        >
+                          <Camera className="h-3 w-3" />
+                          {estado.photo ? '+450 PTS' : 'Capturar Foto'}
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => handleChurchGeo(iglesia.id, iglesia.nombre, iglesia.requierePhoto)}
+                        disabled={estado.geo}
+                        className={`w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold transition-all ${
+                          estado.geo 
+                            ? 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 cursor-default' 
+                            : 'bg-accent text-accent-foreground active:scale-95 hover:bg-accent/90'
+                        }`}
+                      >
+                        <MapPin className="h-3 w-3" />
+                        {estado.geo ? 'CHECK-IN COMPLETO (+200 PTS)' : 'Hacer Check-in (+200 PTS)'}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
-          <button onClick={() => setView('menu')} className="w-full py-3 bg-muted text-foreground text-xs font-bold rounded-xl font-mono uppercase tracking-wider">
+          <button onClick={() => setView('menu')} className="w-full py-3 bg-muted text-foreground text-xs font-bold rounded-xl font-mono uppercase tracking-wider mt-4">
             Volver al Panel
           </button>
         </div>
