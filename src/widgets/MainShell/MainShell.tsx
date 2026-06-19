@@ -8,11 +8,14 @@ import { ensureLocationPermission } from '@/features/geofencing';
 import { usePOIStore, type POI } from '@/entities/poi';
 import { MapWithPOIs } from '@/widgets/MapWithPOIs';
 
-import { CameraPage } from '@/pages/CameraPage'; 
+import { CameraPage } from '@/pages/CameraPage';
 import { GalleryPage } from '@/pages/GalleryPage';
-import { AugmentedRealityPage } from '@/pages/AugmentedRealityPage'; 
+import { AugmentedRealityPage } from '@/pages/AugmentedRealityPage';
 import { ChallengesPage } from '@/pages/ChallengesPage';
 import { CardPage } from '@/pages/CardPage';
+
+// Importación corregida apuntando exactamente a la estructura de la característica (feature)
+import { BusinessSection } from '@/features/business/ui/BusinessSection';
 
 import Sidebar from './sidebar';
 import BottomNav from './bottom-nav';
@@ -42,8 +45,8 @@ export function MainShell() {
     () => (location.state as { justRegistered?: boolean } | null)?.justRegistered === true,
   );
 
-  // Lista de secciones que ocupan pantalla completa y deben ocultar el mapa
-  const fullScreenSections = ['guia', 'camara', 'galeria', 'ar', 'ra', 'retos', 'card-caldas'];
+  // Mantenemos las exclusiones de pantalla completa para ocultar el mapa de fondo
+  const fullScreenSections = ['guia', 'camara', 'galeria', 'ar', 'ra', 'retos', 'card-caldas', 'negocio', 'pasaporte'];
   const isFullScreen = fullScreenSections.includes(section);
 
   useEffect(() => {
@@ -51,8 +54,8 @@ export function MainShell() {
     ensureLocationPermission().then((status) => {
       if (cancelled || status === 'granted') return;
       const msg = status === 'denied' && Capacitor.isNativePlatform()
-          ? '📍 Habilita la ubicación en Ajustes para alertas de cercanía'
-          : '📍 Activa la ubicación para alertas de cercanía';
+        ? '📍 Habilita la ubicación en Ajustes para alertas de cercanía'
+        : '📍 Activa la ubicación para alertas de cercanía';
       toast(msg, { duration: 4000 });
     });
     return () => { cancelled = true; };
@@ -89,18 +92,18 @@ export function MainShell() {
 
   return (
     <div className="relative h-dvh w-full overflow-hidden bg-background">
-      {/* MAPA: Solo se renderiza si NO estamos en una pantalla completa */}
+      {/* MAPA: Oculto dinámicamente si se activa una sección de pantalla completa */}
       {!isFullScreen && <MapWithPOIs />}
 
       {/* RENDERIZADO DE PÁGINAS */}
       {section === 'descubrir' && (
-        <Discover 
-          onOpenMenu={() => setMenuOpen(true)} 
-          onOpenMap={() => handleNavigate('mapa')} 
-          onOpenPlace={openPlaceOnMap} 
+        <Discover
+          onOpenMenu={() => setMenuOpen(true)}
+          onOpenMap={() => handleNavigate('mapa')}
+          onOpenPlace={openPlaceOnMap}
         />
       )}
-      
+
       {section === 'mapa' && (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-[1000] p-4">
           <div className="pointer-events-auto mx-auto flex max-w-md items-center gap-2 rounded-2xl bg-card/95 p-2 shadow-lg backdrop-blur-sm">
@@ -115,7 +118,7 @@ export function MainShell() {
         </div>
       )}
 
-      {/* Pantalla: Guía IA con lógica de trazado de rutas integrada */}
+      {/* Pantalla: Guía IA con callback para trazar rutas */}
       {section === 'guia' && (
         <GuiaIA
           onBack={() => setSection('mapa')}
@@ -133,37 +136,45 @@ export function MainShell() {
       {section === 'retos' && <ChallengesPage onBack={() => setSection('descubrir')} />}
       {section === 'card-caldas' && <CardPage onBack={() => setSection('descubrir')} />}
 
+      {/* Renderizado de la sección: Tu Negocio */}
+      {section === 'negocio' && (
+        <BusinessSection
+          onBack={() => setSection('descubrir')}
+          onViewOnMap={() => setSection('mapa')}
+        />
+      )}
+
       {/* Fallback para secciones genéricas */}
-      {!['descubrir', 'mapa', 'guia', 'perfil', 'camara', 'galeria', 'ar', 'ra', 'retos', 'card-caldas'].includes(section) && (
+      {!['descubrir', 'mapa', 'guia', 'perfil', 'camara', 'galeria', 'ar', 'ra', 'retos', 'card-caldas', 'negocio', 'pasaporte'].includes(section) && (
         <SectionView section={section} onBack={() => setSection('descubrir')} onLogout={handleLogout} onSelectPlace={openPlaceOnMap} />
       )}
 
       {/* INTERFAZ FIJA */}
-      <Sidebar 
-        open={menuOpen} 
-        onClose={() => setMenuOpen(false)} 
-        active={section} 
-        onNavigate={handleNavigate} 
-        onLogout={handleLogout} 
-        geofencing={geofencing} 
-        onToggleGeofencing={toggleGeofencing} 
+      <Sidebar
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        active={section}
+        onNavigate={handleNavigate}
+        onLogout={handleLogout}
+        geofencing={geofencing}
+        onToggleGeofencing={toggleGeofencing}
       />
-      
+
       {!isFullScreen && <AvatarFab onClick={() => handleNavigate('guia')} />}
-      
+
       <BottomNav
         active={section}
         onNavigate={handleNavigate}
-        hidden={section === 'guia' || section === 'camara' || section === 'galeria' || section === 'ar'}
+        hidden={section === 'guia' || section === 'camara' || section === 'galeria' || section === 'ar' || section === 'negocio' || section === 'pasaporte'}
       />
 
-      <GuestGateModal 
-        open={gateOpen} 
-        onClose={() => setGateOpen(false)} 
-        onRegister={() => { 
-          setGateOpen(false); 
-          navigate('/onboarding', { state: { mode: 'register' } }); 
-        }} 
+      <GuestGateModal
+        open={gateOpen}
+        onClose={() => setGateOpen(false)}
+        onRegister={() => {
+          setGateOpen(false);
+          navigate('/onboarding', { state: { mode: 'register' } });
+        }}
       />
 
       <WelcomeModal open={welcomeOpen} onClose={() => setWelcomeOpen(false)} />

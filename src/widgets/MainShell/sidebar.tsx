@@ -10,9 +10,7 @@ import {
   Image,
   Palette,
   Headphones,
-  Sparkles,
   Camera,
-  Award,
   Bell,
   WifiOff,
   Globe,
@@ -21,12 +19,14 @@ import {
   X,
   Trophy,
   CreditCard,
+  Store, // <-- Importación del icono para la sección de negocio
 } from 'lucide-react';
 import { useUserStore } from '@/features/auth';
 import { AVATAR_IMAGE, type Section } from './types';
 
 type NavItem = { id: Section; label: string; icon: any };
 
+// Estructura de navegación corregida sin Guía IA ni Pasaporte, incluyendo Tu Negocio
 const navGroups: { title: string; items: NavItem[] }[] = [
   {
     title: 'Explorar',
@@ -35,13 +35,13 @@ const navGroups: { title: string; items: NavItem[] }[] = [
       { id: 'lugares', label: 'Lugares de interés', icon: MapPin },
       { id: 'rutas', label: 'Rutas guiadas', icon: Route },
       { id: 'audio', label: 'Audioguías', icon: Headphones },
-      { id: 'guia', label: 'Guía IA', icon: Sparkles },
     ],
   },
   {
     title: 'Mi Cuenta',
     items: [
       { id: 'card-caldas', label: 'Tarjeta GO Popayán', icon: CreditCard },
+      { id: 'negocio', label: 'Tu Negocio', icon: Store }, // <-- Integrado correctamente aquí con el id 'negocio'
     ],
   },
   {
@@ -50,7 +50,6 @@ const navGroups: { title: string; items: NavItem[] }[] = [
       { id: 'ra', label: 'Realidad Aumentada', icon: Palette },
       { id: 'camara', label: 'Cámara remota', icon: Camera },
       { id: 'galeria', label: 'Galería de fotos', icon: Image },
-      { id: 'pasaporte', label: 'Pasaporte', icon: Award },
     ],
   },
 ];

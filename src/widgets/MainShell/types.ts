@@ -13,8 +13,9 @@ export type Section =
   | 'retos'
   | 'ajustes'
   | 'perfil'
-  | 'ar' // Mantenemos ambos para no romper herencias
-  | 'card-caldas';
+  | 'ar'
+  | 'card-caldas'
+  | 'negocio'; // <-- 1. Agregamos el tipo literal aquí
 
 export const SECTION_TITLES: Record<Section, string> = {
   descubrir: 'Descubrir',
@@ -23,7 +24,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   rutas: 'Rutas guiadas',
   galeria: 'Galería de fotos',
   ra: 'Realidad Aumentada', 
-  ar: 'Realidad Aumentada', // ¡CORREGIDO!: Agregada esta propiedad para satisfacer al Record<Section, string>
+  ar: 'Realidad Aumentada',
   audio: 'Audioguías',
   guia: 'Guía IA',
   camara: 'Cámara remota',
@@ -33,6 +34,7 @@ export const SECTION_TITLES: Record<Section, string> = {
   ajustes: 'Ajustes',
   perfil: 'Perfil',
   'card-caldas': 'Tarjeta GO Popayán',
+  negocio: 'Mi Negocio', // <-- 2. Satisface el Record agregando la traducción aquí
 };
 
 export const AVATAR_EMOJI: Record<string, string> = {
@@ -45,14 +47,11 @@ export const AVATAR_NAME: Record<string, string> = {
   catedral: 'Catedral',
 };
 
-// Imagen de cada avatar (se usa en la selección y en toda la app)
 export const AVATAR_IMAGE: Record<string, string> = {
   sahumadora: '/images/AvatarSahumadora.png',
   catedral: '/images/AvatarCatedral.png',
 };
 
-// Video animado (GIF con fondo transparente) de cada avatar, para el FAB.
-// Generados con scripts/make_fab_gifs.py a partir de public/videos/*.gif.
 export const AVATAR_VIDEO: Record<string, string> = {
   sahumadora: '/videos/sahumadora_fab.gif',
   catedral: '/videos/iglesia_fab.gif',
