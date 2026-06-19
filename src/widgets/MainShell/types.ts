@@ -48,3 +48,10 @@ export const AVATAR_IMAGE: Record<string, string> = {
   sahumadora: '/images/AvatarSahumadora.png',
   catedral: '/images/AvatarCatedral.png',
 };
+
+// Video animado (GIF con fondo transparente) de cada avatar, para el FAB.
+// Generados con scripts/make_fab_gifs.py a partir de public/videos/*.gif.
+export const AVATAR_VIDEO: Record<string, string> = {
+  sahumadora: '/videos/sahumadora_fab.gif',
+  catedral: '/videos/iglesia_fab.gif',
+};

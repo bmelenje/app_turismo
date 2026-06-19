@@ -47,7 +47,7 @@ export const DEMO_POIS: POI[] = [
   },
   {
     id: 'ra_fachada',
-    name: 'Fachada Colonial (RA)',
+    name: 'Iglesia de San Francisco',
     description: 'Apunta tu cámara hacia la fachada de la Catedral para ver una reconstrucción histórica en 3D de cómo se veía en el siglo XVI. Experiencia de realidad aumentada interactiva.',
     category: 'ra',
     coordinates: { lat: 2.44175, lng: -76.60645 },

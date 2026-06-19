@@ -13,4 +13,8 @@ export const ENV = {
   MAP_ZOOM:       Number(import.meta.env.VITE_MAP_ZOOM ?? 15),
   APP_NAME:       import.meta.env.VITE_APP_NAME       as string ?? 'Guía Turística',
   APP_CITY:       import.meta.env.VITE_APP_CITY       as string ?? 'Popayán',
+  GROQ_API_KEY:   import.meta.env.VITE_GROQ_API_KEY   as string ?? '',
+  GROQ_MODEL:     import.meta.env.VITE_GROQ_MODEL     as string ?? 'llama-3.3-70b-versatile',
+  // Rutas peatonales reales (OpenRouteService, perfil foot-walking). Free sin tarjeta.
+  ORS_API_KEY:    import.meta.env.VITE_ORS_API_KEY    as string ?? '',
 } as const;

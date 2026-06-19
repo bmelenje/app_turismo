@@ -31,6 +31,7 @@ export function MainShell() {
   const reset = useUserStore((s) => s.reset);
   const isGuest = useUserStore((s) => s.guest && !s.registered);
   const selectPOI = usePOIStore((s) => s.selectPOI);
+  const requestRoute = usePOIStore((s) => s.requestRoute);
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [section, setSection] = useState<Section>('descubrir');
@@ -128,7 +129,15 @@ export function MainShell() {
       )}
 
       {/* Pantalla: Guía IA */}
-      {section === 'guia' && <GuiaIA onBack={() => setSection('mapa')} />}
+      {section === 'guia' && (
+        <GuiaIA
+          onBack={() => setSection('mapa')}
+          onDrawRoute={(ids) => {
+            requestRoute(ids);
+            setSection('mapa');
+          }}
+        />
+      )}
 
       {/* Pantalla: Perfil */}
       {section === 'perfil' && <Profile onLogout={handleLogout} />}
@@ -189,7 +198,11 @@ export function MainShell() {
         <AvatarFab onClick={() => handleNavigate('guia')} />
       )}
 
-      <BottomNav active={section} onNavigate={handleNavigate} />
+      <BottomNav
+        active={section}
+        onNavigate={handleNavigate}
+        hidden={section === 'guia' || section === 'camara' || section === 'galeria' || section === 'ar'}
+      />
 
       <GuestGateModal open={gateOpen} onClose={() => setGateOpen(false)} onRegister={goToRegister} />
 

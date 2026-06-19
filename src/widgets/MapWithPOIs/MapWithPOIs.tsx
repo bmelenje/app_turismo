@@ -96,12 +96,18 @@ const MAP_POIS = DEMO_POIS.filter((p) => MAP_POI_IDS.includes(p.id));
 
 type RouteInfo = { km: string; mins: number; stops: number };
 
+// Ritmo de caminata medio (~5 km/h) para estimar el tiempo a pie cuando el
+// router no da una duración peatonal fiable.
+const WALK_METERS_PER_MIN = 5000 / 60;
+
 export function MapWithPOIs() {
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<maplibregl.Map | null>(null);
   const mapReady = useRef(false);
   const markersRef = useRef<Record<string, { marker: maplibregl.Marker; el: HTMLElement }>>({});
   const { setPOIs, selectedPOI, selectPOI } = usePOIStore();
+  const pendingRoute = usePOIStore((s) => s.pendingRoute);
+  const clearPendingRoute = usePOIStore((s) => s.clearPendingRoute);
   const [activeFilter, setActiveFilter] = useState<MapFilter>('all');
 
   const savedIds = useFavoritesStore((s) => s.ids);
@@ -298,17 +304,62 @@ export function MapWithPOIs() {
     });
   };
 
-  // Traza una ruta a pie por una lista de waypoints (OSRM, con fallback a línea directa)
+  // Traza una ruta a pie por una lista de waypoints.
+  // 1º OpenRouteService (perfil peatonal real) si hay key; 2º OSRM (geometría, pero
+  // tiempo recalculado a ritmo de caminata); 3º línea directa.
   const drawRoute = async (waypoints: [number, number][], stops: number) => {
     if (waypoints.length < 2 || !map.current) return;
     const src = map.current.getSource('route-source') as maplibregl.GeoJSONSource | undefined;
     if (!src) return;
 
-    const path = waypoints.map((c) => `${c[0]},${c[1]}`).join(';');
-    const url = `https://router.project-osrm.org/route/v1/foot/${path}?overview=full&geometries=geojson`;
-    const toastId = toast.loading('Calculando ruta…');
+    const toastId = toast.loading('Calculando ruta a pie…');
 
+    const paint = (
+      geometry: GeoJSON.Geometry,
+      coords: [number, number][],
+      km: string,
+      mins: number,
+    ) => {
+      src.setData({ type: 'Feature', geometry, properties: {} });
+      setSheetOpen(false);
+      fitToCoords(coords);
+      setRouteInfo({ km, mins, stops });
+      toast.success(`🚶 ${km} km · ~${mins} min a pie`, { id: toastId, duration: 4000 });
+    };
+
+    // 1) OpenRouteService — ruta peatonal real (cruza plazas, parques, sin sentidos de vía)
+    if (ENV.ORS_API_KEY) {
+      try {
+        const res = await fetch(
+          'https://api.openrouteservice.org/v2/directions/foot-walking/geojson',
+          {
+            method: 'POST',
+            headers: { Authorization: ENV.ORS_API_KEY, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ coordinates: waypoints }),
+          },
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const feat = data.features?.[0];
+          if (feat?.geometry) {
+            const coords = feat.geometry.coordinates as [number, number][];
+            const summary = feat.properties?.summary ?? {};
+            const km = ((summary.distance ?? 0) / 1000).toFixed(2);
+            const mins = Math.max(1, Math.round((summary.duration ?? 0) / 60));
+            paint(feat.geometry, coords, km, mins);
+            return;
+          }
+        }
+      } catch {
+        /* cae al fallback de OSRM */
+      }
+    }
+
+    // 2) OSRM público (el perfil a pie enruta como carro): usamos su geometría pero
+    //    recalculamos el tiempo a ritmo de caminata (~5 km/h = 83 m/min).
     try {
+      const path = waypoints.map((c) => `${c[0]},${c[1]}`).join(';');
+      const url = `https://router.project-osrm.org/route/v1/foot/${path}?overview=full&geometries=geojson`;
       const res = await fetch(url);
       if (!res.ok) throw new Error('osrm');
       const data = await res.json();
@@ -316,15 +367,11 @@ export function MapWithPOIs() {
       if (!route) throw new Error('sin ruta');
 
       const coords = route.geometry.coordinates as [number, number][];
-      src.setData({ type: 'Feature', geometry: route.geometry, properties: {} });
-      setSheetOpen(false);
-      fitToCoords(coords);
-
       const km = (route.distance / 1000).toFixed(2);
-      const mins = Math.max(1, Math.round(route.duration / 60));
-      setRouteInfo({ km, mins, stops });
-      toast.success(`🚶 ${km} km · ~${mins} min caminando`, { id: toastId, duration: 4000 });
+      const mins = Math.max(1, Math.round(route.distance / WALK_METERS_PER_MIN));
+      paint(route.geometry, coords, km, mins);
     } catch {
+      // 3) línea directa
       src.setData({
         type: 'Feature',
         geometry: { type: 'LineString', coordinates: waypoints },
@@ -336,6 +383,44 @@ export function MapWithPOIs() {
       toast('Ruta directa (servicio de rutas no disponible)', { id: toastId, icon: '➡️' });
     }
   };
+
+  // La Guía IA pidió dibujar una ruta por varios POIs: la trazamos a pie.
+  useEffect(() => {
+    if (!pendingRoute || pendingRoute.length < 2) return;
+
+    const stops = pendingRoute
+      .map((id) => DEMO_POIS.find((p) => p.id === id))
+      .filter((p): p is POI => Boolean(p));
+    if (stops.length < 2) {
+      clearPendingRoute();
+      return;
+    }
+
+    const run = () => {
+      selectPOI(null);
+      setSheetOpen(false);
+      setRouteStops(stops);
+      drawRoute(
+        stops.map((p) => [p.coordinates.lng, p.coordinates.lat] as [number, number]),
+        stops.length,
+      );
+      clearPendingRoute();
+    };
+
+    if (mapReady.current) {
+      run();
+      return;
+    }
+    // El mapa aún no terminó de cargar: esperamos a que esté listo.
+    const t = window.setInterval(() => {
+      if (mapReady.current) {
+        window.clearInterval(t);
+        run();
+      }
+    }, 200);
+    return () => window.clearInterval(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingRoute]);
 
   // Reacciona a selección externa (desde Lugares / Descubrir) y resalta el marcador
   useEffect(() => {

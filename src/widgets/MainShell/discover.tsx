@@ -8,7 +8,11 @@ import {
   Footprints,
   Clock,
   CloudSun,
+  CalendarDays,
+  MapPin,
+  CheckCircle2,
 } from 'lucide-react';
+import { useState } from 'react';
 import toast from 'react-hot-toast';
 import { ENV } from '@/shared/config/env';
 import { DEMO_POIS } from '@/widgets/MapWithPOIs/demoPOIs';
@@ -19,7 +23,148 @@ type Props = {
   onOpenPlace: (poi: (typeof DEMO_POIS)[number]) => void;
 };
 
-// Metadatos de recorrido (demo) para las tarjetas
+// ── Eventos próximos ─────────────────────────────────────────────────────────
+interface Event {
+  id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  date: string;
+  time: string;
+  location: string;
+  tag: string;
+  tagColor: string;
+}
+
+const UPCOMING_EVENTS: Event[] = [
+  {
+    id: 'congreso-gastronomico',
+    title: 'Congreso Gastronómico',
+    subtitle: 'Sabores del Cauca',
+    image: '/images/congreso-gastronomico.png',
+    date: '28 Jun 2025',
+    time: '10:00 am – 6:00 pm',
+    location: 'Centro de Convenciones',
+    tag: 'Gastronomía',
+    tagColor: '#E8730C',
+  },
+  {
+    id: 'avistamiento',
+    title: 'Avistamiento de Aves',
+    subtitle: 'Reserva Natural El Hormiguero',
+    image: '/images/avistamiento.png',
+    date: '5 Jul 2025',
+    time: '6:00 am – 9:00 am',
+    location: 'Reserva El Hormiguero',
+    tag: 'Naturaleza',
+    tagColor: '#0F9D58',
+  },
+  {
+    id: 'parche-runner',
+    title: 'Parche Runner',
+    subtitle: 'Carrera urbana nocturna',
+    image: '/images/parche-runner.png',
+    date: '12 Jul 2025',
+    time: '7:00 pm – 10:00 pm',
+    location: 'Parque Caldas',
+    tag: 'Deporte',
+    tagColor: '#1A73E8',
+  },
+  {
+    id: 'semana-santa',
+    title: 'Semana Santa',
+    subtitle: 'Procesiones patrimonio de la humanidad',
+    image: '/images/semana-santa.png',
+    date: '29 Mar 2026',
+    time: 'Todo el día',
+    location: 'Centro Histórico',
+    tag: 'Cultura',
+    tagColor: '#8B5CF6',
+  },
+];
+
+function EventCard({ event }: { event: Event }) {
+  const [attending, setAttending] = useState(false);
+
+  function handleAttend(e: React.MouseEvent) {
+    e.stopPropagation();
+    setAttending((v) => !v);
+    toast.success(
+      attending ? `Cancelaste tu asistencia a "${event.title}"` : `¡Te apuntaste a "${event.title}"! 🎉`,
+    );
+  }
+
+  return (
+    <article className="relative w-72 shrink-0 overflow-hidden rounded-2xl bg-card shadow-sm ring-1 ring-border transition-shadow hover:shadow-md">
+      {/* Imagen */}
+      <div className="relative h-44 w-full overflow-hidden">
+        <img
+          src={event.image}
+          alt={event.title}
+          className="h-full w-full object-cover transition-transform duration-300 hover:scale-105"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
+
+        {/* Tag categoría */}
+        <span
+          className="absolute left-3 top-3 rounded-full px-2.5 py-1 text-[11px] font-semibold text-white shadow"
+          style={{ backgroundColor: event.tagColor }}
+        >
+          {event.tag}
+        </span>
+
+        {/* Fecha pill */}
+        <div className="absolute right-3 top-3 flex flex-col items-center rounded-xl bg-card/95 px-2.5 py-1.5 text-center shadow backdrop-blur-sm">
+          <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground">
+            {event.date.split(' ')[1]}
+          </span>
+          <span className="text-lg font-bold leading-none text-foreground">
+            {event.date.split(' ')[0]}
+          </span>
+        </div>
+      </div>
+
+      {/* Cuerpo */}
+      <div className="p-3">
+        <h3 className="font-heading text-sm font-bold text-foreground">{event.title}</h3>
+        <p className="mt-0.5 text-[12px] text-muted-foreground">{event.subtitle}</p>
+
+        <div className="mt-2 flex flex-col gap-1">
+          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <Clock className="h-3.5 w-3.5 shrink-0 text-primary" />
+            {event.time}
+          </span>
+          <span className="flex items-center gap-1.5 text-[12px] text-muted-foreground">
+            <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />
+            {event.location}
+          </span>
+        </div>
+
+        {/* CTA */}
+        <button
+          onClick={handleAttend}
+          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-semibold transition-colors ${
+            attending
+              ? 'bg-green-50 text-green-700 ring-1 ring-green-200'
+              : 'bg-primary text-primary-foreground hover:bg-primary/90'
+          }`}
+        >
+          {attending ? (
+            <>
+              <CheckCircle2 className="h-4 w-4" /> Asistiré
+            </>
+          ) : (
+            <>
+              <CalendarDays className="h-4 w-4" /> Quiero asistir
+            </>
+          )}
+        </button>
+      </div>
+    </article>
+  );
+}
+
+// ── Metadatos de recorrido (demo) para las tarjetas ──────────────────────────
 const TOUR_META: Record<string, { dist: string; min: string; likes: number; tag: string }> = {
   caldas: { dist: '0.2 km', min: '15 Min', likes: 24, tag: 'Plaza' },
   catedral: { dist: '0.3 km', min: '40 Min', likes: 31, tag: 'Iglesia' },
@@ -91,7 +236,6 @@ function TourCard({
 
 export default function Discover({ onOpenMenu, onOpenMap, onOpenPlace }: Props) {
   const autoguiadas = DEMO_POIS.slice(0, 4);
-  const aPie = DEMO_POIS.slice(2);
 
   return (
     <div className="absolute inset-0 z-[1000] flex flex-col overflow-y-auto bg-background pb-24">
@@ -166,14 +310,14 @@ export default function Discover({ onOpenMenu, onOpenMap, onOpenPlace }: Props) 
           </div>
         </section>
 
-        {/* Centro histórico a pie */}
+        {/* Experiencias — eventos próximos */}
         <section>
-          <h2 className="mb-3 px-5 font-heading text-lg font-bold text-foreground">
-            Centro histórico a pie
-          </h2>
+          <div className="mb-3 flex items-baseline justify-between px-5">
+            <h2 className="font-heading text-lg font-bold text-foreground">Experiencias</h2>
+          </div>
           <div className="no-scrollbar flex gap-3 overflow-x-auto px-5">
-            {aPie.map((poi) => (
-              <TourCard key={poi.id} poi={poi} onOpen={onOpenPlace} />
+            {UPCOMING_EVENTS.map((ev) => (
+              <EventCard key={ev.id} event={ev} />
             ))}
           </div>
         </section>

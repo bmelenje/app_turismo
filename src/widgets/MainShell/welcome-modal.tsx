@@ -1,7 +1,7 @@
 import { Compass } from 'lucide-react';
 import { Button } from '@/shared/ui/Button';
 import { useUserStore } from '@/features/auth';
-import { AVATAR_IMAGE } from './types';
+import { AVATAR_IMAGE, AVATAR_VIDEO } from './types';
 
 type Props = {
   open: boolean;
@@ -17,7 +17,8 @@ export default function WelcomeModal({ open, onClose }: Props) {
   const avatar = useUserStore((s) => s.avatar);
   if (!open) return null;
 
-  const avatarImage = (avatar && AVATAR_IMAGE[avatar]) || null;
+  // Preferimos el video animado (GIF con fondo transparente); si no, la imagen.
+  const avatarMedia = (avatar && (AVATAR_VIDEO[avatar] || AVATAR_IMAGE[avatar])) || null;
   const firstName = (name || 'Viajero').split(' ')[0];
 
   return (
@@ -46,8 +47,8 @@ export default function WelcomeModal({ open, onClose }: Props) {
           <div className="absolute inset-0 bg-gradient-to-b from-black/20 to-card" />
           <div className="absolute inset-x-0 -bottom-8 flex justify-center">
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-full border-4 border-card bg-primary text-3xl shadow-lg">
-              {avatarImage ? (
-                <img src={avatarImage} alt="" className="h-full w-full object-cover" />
+              {avatarMedia ? (
+                <img src={avatarMedia} alt="" className="h-full w-full object-cover" />
               ) : (
                 '🧭'
               )}

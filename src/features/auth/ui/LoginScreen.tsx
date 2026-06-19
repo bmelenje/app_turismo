@@ -1,11 +1,12 @@
 import type React from 'react';
 import { useState } from 'react';
 import { Button } from '@/shared/ui/Button';
-import { MapPin, Mail, Lock, Eye, EyeOff, User } from 'lucide-react';
+import { Mail, Lock, Eye, EyeOff, User, Globe, Phone, CreditCard } from 'lucide-react';
+import type { Language, TravelerOrigin, RegisterData } from '@/features/auth';
 
 interface Props {
-  /** Se llama al iniciar sesión o registrarse. Devuelve el nombre capturado (si lo hay). */
-  onComplete: (name: string) => void;
+  /** Se llama al iniciar sesión o registrarse con los datos capturados. */
+  onComplete: (data: RegisterData) => void;
   /** Se llama al pulsar "Continuar como invitado": entra directo sin cuenta. */
   onGuest: () => void;
   /** Se llama al pulsar "Continuar con Google" (simulado, solo front). */
@@ -14,14 +15,90 @@ interface Props {
   initialMode?: 'login' | 'register';
 }
 
+// Países/nacionalidades frecuentes entre quienes visitan Popayán (+ "Otro").
+const COUNTRIES = [
+  '🇺🇸 Estados Unidos',
+  '🇨🇦 Canadá',
+  '🇲🇽 México',
+  '🇧🇷 Brasil',
+  '🇦🇷 Argentina',
+  '🇨🇱 Chile',
+  '🇵🇪 Perú',
+  '🇪🇨 Ecuador',
+  '🇻🇪 Venezuela',
+  '🇪🇸 España',
+  '🇫🇷 Francia',
+  '🇩🇪 Alemania',
+  '🇮🇹 Italia',
+  '🇬🇧 Reino Unido',
+  '🇳🇱 Países Bajos',
+  '🇵🇹 Portugal',
+  '🌎 Otro',
+];
+
+// Idiomas disponibles (el extranjero suele necesitar algo distinto del español).
+const LANGUAGES: { code: Language; label: string; flag: string }[] = [
+  { code: 'es', label: 'Español', flag: '🇪🇸' },
+  { code: 'en', label: 'English', flag: '🇺🇸' },
+  { code: 'fr', label: 'Français', flag: '🇫🇷' },
+  { code: 'pt', label: 'Português', flag: '🇧🇷' },
+  { code: 'de', label: 'Deutsch', flag: '🇩🇪' },
+  { code: 'it', label: 'Italiano', flag: '🇮🇹' },
+];
+
 export function LoginScreen({ onComplete, onGuest, onGoogle, initialMode = 'login' }: Props) {
   const [mode, setMode] = useState<'login' | 'register'>(initialMode);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Campos del formulario
   const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [origin, setOrigin] = useState<TravelerOrigin>('national');
+  const [country, setCountry] = useState('');
+  const [documentId, setDocumentId] = useState('');
+  const [phone, setPhone] = useState('');
+  const [language, setLanguage] = useState<Language>('es');
+
+  const isRegister = mode === 'register';
+  const isForeign = origin === 'foreign';
+
+  // Al cambiar de origen ajustamos los valores por defecto sensatos.
+  function selectOrigin(next: TravelerOrigin) {
+    setOrigin(next);
+    if (next === 'national') {
+      setCountry('🇨🇴 Colombia');
+      setLanguage('es');
+    } else {
+      setCountry('');
+    }
+  }
+
+  const canSubmit = isRegister
+    ? name.trim().length > 1 &&
+      email.trim().length > 3 &&
+      documentId.trim().length > 3 &&
+      (!isForeign || country.trim().length > 0)
+    : email.trim().length > 3;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onComplete(name.trim());
+    if (!canSubmit) return;
+
+    if (isRegister) {
+      onComplete({
+        name: name.trim(),
+        email: email.trim(),
+        origin,
+        country: isForeign ? country : '🇨🇴 Colombia',
+        documentType: isForeign ? 'passport' : 'cc',
+        documentId: documentId.trim(),
+        phone: phone.trim() || undefined,
+        language,
+      });
+    } else {
+      // Inicio de sesión: solo el correo identifica al viajero en este front.
+      onComplete({ name: name.trim(), email: email.trim(), language: 'es' });
+    }
   }
 
   const inputCls =
@@ -41,17 +118,20 @@ export function LoginScreen({ onComplete, onGuest, onGoogle, initialMode = 'logi
       </div>
 
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-10">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary shadow-lg">
-            <MapPin className="h-8 w-8 text-primary-foreground" />
+        {/* Card con logo flotante encima */}
+        <div className="relative mt-16 w-full max-w-sm">
+          {/* Círculo con logo — mitad fuera del card, mitad dentro */}
+          <div className="absolute inset-x-0 -top-16 z-10 flex justify-center">
+            <div className="flex h-36 w-36 items-center justify-center rounded-full bg-card shadow-[0_8px_32px_rgba(0,0,0,0.18)] ring-4 ring-card/60">
+              <img
+                src="/images/logo-original.png"
+                alt="Popayán"
+                className="h-[130px] w-[130px] object-contain"
+              />
+            </div>
           </div>
-          <h1 className="font-heading text-4xl font-bold text-white drop-shadow-md">Popayán</h1>
-          <p className="mt-1 text-sm font-medium uppercase tracking-[0.2em] text-accent drop-shadow">
-            La Ciudad Blanca
-          </p>
-        </div>
 
-        <div className="w-full max-w-sm rounded-3xl bg-card/95 p-6 shadow-2xl backdrop-blur-sm">
+        <div className="w-full rounded-3xl bg-card/95 pt-24 px-6 pb-6 shadow-2xl backdrop-blur-sm">
           <div className="mb-6 flex rounded-xl bg-muted p-1">
             <button
               type="button"
@@ -74,23 +154,137 @@ export function LoginScreen({ onComplete, onGuest, onGoogle, initialMode = 'logi
           </div>
 
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-            {mode === 'register' && (
-              <div className="flex flex-col gap-2">
-                <label htmlFor="name" className="text-sm font-medium text-foreground">
-                  Nombre completo
-                </label>
-                <div className="relative">
-                  <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                  <input
-                    id="name"
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Tu nombre"
-                    className={`${inputCls} pl-10 pr-3`}
-                  />
+            {isRegister && (
+              <>
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="name" className="text-sm font-medium text-foreground">
+                    Nombre completo
+                  </label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="name"
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Como aparece en tu documento"
+                      className={`${inputCls} pl-10 pr-3`}
+                    />
+                  </div>
                 </div>
-              </div>
+
+                {/* ¿De dónde nos visita? — define qué datos pedimos después */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-foreground">¿De dónde nos visitas?</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    {(
+                      [
+                        { value: 'national', label: 'Soy de Colombia', flag: '🇨🇴' },
+                        { value: 'foreign', label: 'Vengo del exterior', flag: '🌎' },
+                      ] as const
+                    ).map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => selectOrigin(opt.value)}
+                        className={`flex items-center justify-center gap-1.5 rounded-xl border px-2 py-2.5 text-xs font-medium transition-colors ${
+                          origin === opt.value
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <span className="text-base">{opt.flag}</span>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* País / nacionalidad — solo para el turista extranjero */}
+                {isForeign && (
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="country" className="text-sm font-medium text-foreground">
+                      País de origen / nacionalidad
+                    </label>
+                    <div className="relative">
+                      <Globe className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <select
+                        id="country"
+                        value={country}
+                        onChange={(e) => setCountry(e.target.value)}
+                        className={`${inputCls} pl-10 pr-3 ${country ? '' : 'text-muted-foreground'}`}
+                      >
+                        <option value="" disabled>
+                          Selecciona tu país
+                        </option>
+                        {COUNTRIES.map((c) => (
+                          <option key={c} value={c}>
+                            {c}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                )}
+
+                {/* Documento: pasaporte para extranjeros, cédula para nacionales */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="document" className="text-sm font-medium text-foreground">
+                    {isForeign ? 'Número de pasaporte' : 'Cédula de ciudadanía'}
+                  </label>
+                  <div className="relative">
+                    <CreditCard className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="document"
+                      type="text"
+                      value={documentId}
+                      onChange={(e) => setDocumentId(e.target.value)}
+                      placeholder={isForeign ? 'Ej. X1234567' : 'Ej. 1061234567'}
+                      className={`${inputCls} pl-10 pr-3`}
+                    />
+                  </div>
+                </div>
+
+                {/* Teléfono con indicativo — útil para contactar al viajero */}
+                <div className="flex flex-col gap-2">
+                  <label htmlFor="phone" className="text-sm font-medium text-foreground">
+                    Teléfono <span className="font-normal text-muted-foreground">(con indicativo)</span>
+                  </label>
+                  <div className="relative">
+                    <Phone className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                    <input
+                      id="phone"
+                      type="tel"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      placeholder={isForeign ? '+1 415 555 0100' : '+57 300 123 4567'}
+                      className={`${inputCls} pl-10 pr-3`}
+                    />
+                  </div>
+                </div>
+
+                {/* Idioma preferido — sobre todo para el turista extranjero */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium text-foreground">Idioma preferido</span>
+                  <div className="grid grid-cols-3 gap-2">
+                    {LANGUAGES.map((l) => (
+                      <button
+                        key={l.code}
+                        type="button"
+                        onClick={() => setLanguage(l.code)}
+                        className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-2 text-xs font-medium transition-colors ${
+                          language === l.code
+                            ? 'border-primary bg-primary/10 text-primary'
+                            : 'border-border bg-background text-muted-foreground hover:bg-muted'
+                        }`}
+                      >
+                        <span className="text-lg">{l.flag}</span>
+                        <span>{l.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </>
             )}
 
             <div className="flex flex-col gap-2">
@@ -102,6 +296,8 @@ export function LoginScreen({ onComplete, onGuest, onGoogle, initialMode = 'logi
                 <input
                   id="email"
                   type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="turista@ejemplo.com"
                   className={`${inputCls} pl-10 pr-3`}
                 />
@@ -140,7 +336,7 @@ export function LoginScreen({ onComplete, onGuest, onGoogle, initialMode = 'logi
               </button>
             )}
 
-            <Button type="submit" size="lg" className="mt-2 w-full">
+            <Button type="submit" size="lg" className="mt-2 w-full" disabled={!canSubmit}>
               {mode === 'login' ? 'Entrar a la ciudad' : 'Crear cuenta'}
             </Button>
           </form>
@@ -166,6 +362,7 @@ export function LoginScreen({ onComplete, onGuest, onGoogle, initialMode = 'logi
             Al continuar aceptas explorar el patrimonio histórico de Popayán.
           </p>
         </div>
+        </div>{/* cierre wrapper relativo */}
 
         <button
           type="button"

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { LoginScreen, AvatarPicker, useUserStore } from '@/features/auth';
+import { LoginScreen, AvatarPicker, useUserStore, type RegisterData } from '@/features/auth';
 
 // Cuenta de Google simulada (solo front, sin integración real)
 const MOCK_GOOGLE_ACCOUNT = { name: 'María González', email: 'maria.gonzalez@gmail.com' };
@@ -19,8 +19,8 @@ export function OnboardingPage() {
   // Permite que el modal "Regístrate" abra esta pantalla directo en la pestaña de registro.
   const initialMode = (location.state as { mode?: 'login' | 'register' } | null)?.mode ?? 'login';
 
-  function handleLoginComplete(name: string) {
-    setProfile({ name: name || 'Viajero', age: 0, language: 'es' });
+  function handleLoginComplete(data: RegisterData) {
+    setProfile({ ...data, name: data.name || 'Viajero' });
     setStep('avatar');
   }
 
